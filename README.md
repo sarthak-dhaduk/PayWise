@@ -114,7 +114,7 @@ The user interface of "PayWise: Expense Tracker" has been thoughtfully designed 
 
 You can explore the complete UI design on Figma using the link below:
 
-[![Figma Design Link](https://img.shields.io/badge/Figma-UI%20Design-ff69b4?style=for-the-badge&logo=figma)](https://www.figma.com/file/your-figma-link)
+[![Figma Design Link](https://img.shields.io/badge/Figma-UI%20Design-ff69b4?style=for-the-badge&logo=figma)](https://www.figma.com/design/X5PRy1cNj9kHCb7gwCbPRB/PayWise?node-id=0-1&t=7XDlXrMVQp25jKKv-1)
 
 ### UI Features:
 * **Intuitive Layout:** Easy to navigate with clear menus and well-organized screens.
@@ -262,7 +262,7 @@ First Person Name - [Sarthak Dhaduk](mailto:sarthakdhaduk1111@gmail.com) - [@gma
 
 Second Person Name - [Jigar Kalariya](mailto:jigar.kalariya28@gmail.com) - [@gmail.com](mailto:jigar.kalariya28@gmail.com)
 
-Second Person Name - [Yash Lalani](mailto:lyash031@rku.ac.in) - [@gmail.com](mailto:lyash031@rku.ac.in)
+Third Person Name - [Yash Lalani](mailto:yashlalani43@gmail.com) - [@gmail.com](mailto:yashlalani43@gmail.com)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
