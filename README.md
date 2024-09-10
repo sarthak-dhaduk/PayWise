@@ -12,7 +12,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/sarthak-dhaduk/PayWise">
-    <img src="assets/img/logo2.png" alt="Logo" width="185" height="70">
+    <img src="assets/img/logo2.png" alt="Logo" width="200" height="200">
   </a>
 
   <h3 align="center">PayWise: Expense Tracker</h3>
