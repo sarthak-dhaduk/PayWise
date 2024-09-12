@@ -5,6 +5,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:paywise/screens/DetailTransactionPage.dart';
 import 'package:paywise/screens/HomeScreen.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
@@ -361,7 +362,13 @@ class _TransferPageState extends State<TransferPage> {
                         SizedBox(
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        DetailTransactionPage()),
+                              );
+                            },
                             child: Text('Continue',
                                 style: TextStyle(
                                     fontSize: 18, color: Colors.white)),
