@@ -2,18 +2,18 @@ import 'dart:io';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:paywise/screens/HomeScreen.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
-import 'package:paywise/widgets/CurrencyConverter.dart';
 
-class AddExpensePage extends StatefulWidget {
+class TransferPage extends StatefulWidget {
   @override
-  _AddExpensePageState createState() => _AddExpensePageState();
+  _TransferPageState createState() => _TransferPageState();
 }
 
-class _AddExpensePageState extends State<AddExpensePage> {
+class _TransferPageState extends State<TransferPage> {
   String? selectedCategory;
   String? selectedWallet;
   XFile? _imageFile;
@@ -22,8 +22,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
   final List<String> categories = ['Subscription', 'Food', 'Transport'];
   final List<String> wallets = ['PayPal', 'Credit Card', 'Cash'];
 
-  double topContainerHeight = 420;
-  double bottomContainerHeight = 380;
+  double topContainerHeight = 400;
+  double bottomContainerHeight = 400;
   double maxHeight = 650;
   double minHeight = 100;
 
@@ -32,9 +32,9 @@ class _AddExpensePageState extends State<AddExpensePage> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Color.fromRGBO(253, 60, 74, 1),
+        backgroundColor: Color.fromRGBO(0, 119, 255, 1),
         centerTitle: true,
-        title: Text('Expense', style: TextStyle(color: Colors.white)),
+        title: Text('Transfer', style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
@@ -47,17 +47,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
       body: Stack(
         children: [
           GestureDetector(
-            // onVerticalDragUpdate: (details) {
-            //   setState(() {
-            //     bottomContainerHeight -= details.delta.dy;
-            //     if (bottomContainerHeight > maxHeight)
-            //       bottomContainerHeight = maxHeight;
-            //     if (bottomContainerHeight < minHeight)
-            //       bottomContainerHeight = minHeight;
-            //   });
-            // },
             child: Container(
-              color: Color.fromRGBO(253, 60, 74, 1),
+              color: Color.fromRGBO(0, 119, 255, 1),
               height: MediaQuery.of(context).size.height,
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -73,7 +64,34 @@ class _AddExpensePageState extends State<AddExpensePage> {
                       fontSize: 18,
                     ),
                   ),
-                  CurrencyConverter(color: Color.fromRGBO(253, 60, 74, 1)),
+                  TextField(
+                    cursorColor: Colors.white,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 50,
+                    ),
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      prefixIcon: Container(
+                        margin: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.currency_rupee_rounded,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                      ),
+                      hintText: '0',
+                      hintStyle: TextStyle(
+                        color: Colors.white,
+                        fontSize: 50,
+                      ),
+                      labelStyle: TextStyle(color: Colors.white),
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
                 ],
               ),
             ),
@@ -123,71 +141,176 @@ class _AddExpensePageState extends State<AddExpensePage> {
                           ),
                         ),
                         SizedBox(height: 16),
-                        DropdownButtonFormField2<String>(
-                          decoration: InputDecoration(
-                            focusColor: Color.fromRGBO(127, 61, 255, 1),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                        Stack(
+                          children: [
+                            Row(
+                              children: [
+                                // TextField for Amount Input
+                                Expanded(
+                                  flex: 2,
+                                  child: DropdownButtonFormField2<String>(
+                                    decoration: InputDecoration(
+                                      labelText: "From",
+                                      labelStyle: TextStyle(
+                                        color: const Color.fromARGB(
+                                            255, 72, 72, 72),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 15),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(16)),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(
+                                              255, 0, 0, 0),
+                                          width:
+                                              0.5, // Reduced thickness for enabled border
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(16)),
+                                        borderSide: BorderSide(
+                                          color:
+                                              Color.fromRGBO(127, 61, 255, 1),
+                                          width:
+                                              0.5, // Reduced thickness for focused border
+                                        ),
+                                      ),
+                                    ),
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400),
+                                    iconStyleData: const IconStyleData(
+                                      icon: Icon(
+                                          Icons.keyboard_arrow_down_rounded),
+                                      iconSize: 0,
+                                    ),
+                                    dropdownStyleData: const DropdownStyleData(
+                                      width: 200,
+                                      maxHeight: 200,
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 2),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(16)),
+                                      ),
+                                    ),
+                                    items: categories.map((String item) {
+                                      return DropdownMenuItem<String>(
+                                        alignment:
+                                            AlignmentDirectional.centerStart,
+                                        value: item,
+                                        child: Text(item),
+                                      );
+                                    }).toList(),
+                                    value: selectedCategory,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedCategory = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 20,
+                                ),
+                                // Dropdown for Currency Selection
+                                Expanded(
+                                  flex: 2,
+                                  child: DropdownButtonFormField2<String>(
+                                    decoration: InputDecoration(
+                                      labelText: "To",
+                                      labelStyle: TextStyle(
+                                        color: const Color.fromARGB(
+                                            255, 72, 72, 72),
+                                      ),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 15),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(16)),
+                                        borderSide: BorderSide(
+                                          color: const Color.fromARGB(
+                                              255, 0, 0, 0),
+                                          width:
+                                              0.5, // Reduced thickness for enabled border
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(16)),
+                                        borderSide: BorderSide(
+                                          color:
+                                              Color.fromRGBO(127, 61, 255, 1),
+                                          width:
+                                              0.5, // Reduced thickness for focused border
+                                        ),
+                                      ),
+                                    ),
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400),
+                                    iconStyleData: const IconStyleData(
+                                      icon: Icon(
+                                          Icons.keyboard_arrow_down_rounded),
+                                      iconSize: 0, // Reduced the icon size
+                                      iconEnabledColor:
+                                          Color.fromRGBO(0, 0, 0, 1),
+                                    ),
+                                    dropdownStyleData: const DropdownStyleData(
+                                      width: 200,
+                                      maxHeight: 200,
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 2),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(16)),
+                                      ),
+                                    ),
+                                    items: wallets.map((String item) {
+                                      return DropdownMenuItem<String>(
+                                        value: item,
+                                        child: Text(item),
+                                      );
+                                    }).toList(),
+                                    value: selectedWallet,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedWallet = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                            filled: true,
-                            fillColor: const Color.fromARGB(0, 255, 255, 255),
-                          ),
-                          iconStyleData: const IconStyleData(
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
+                            Positioned(
+                              top: 10, // Adjust based on the icon position
+                              left: MediaQuery.of(context).size.width / 2 - 40,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color.fromARGB(49, 0, 0, 0),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 0),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: SvgPicture.asset(
+                                      'assets/icons/Transaction.svg'),
+                                ),
+                              ),
                             ),
-                            iconSize: 30,
-                            iconEnabledColor: Color.fromRGBO(0, 0, 0, 1),
-                            iconDisabledColor:
-                                Color.fromARGB(255, 255, 255, 255),
-                          ),
-                          items: categories.map((String item) {
-                            return DropdownMenuItem<String>(
-                              value: item,
-                              child: Text(item),
-                            );
-                          }).toList(),
-                          value: selectedCategory,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedCategory = value;
-                            });
-                          },
-                          hint: Text('Category'),
+                          ],
                         ),
                         SizedBox(height: 12),
-                        DropdownButtonFormField2<String>(
-                          decoration: InputDecoration(
-                            focusColor: Color.fromRGBO(127, 61, 255, 1),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            filled: true,
-                            fillColor: const Color.fromARGB(0, 255, 255, 255),
-                          ),
-                          iconStyleData: const IconStyleData(
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                            ),
-                            iconSize: 30,
-                            iconEnabledColor: Color.fromRGBO(0, 0, 0, 1),
-                            iconDisabledColor:
-                                Color.fromARGB(255, 255, 255, 255),
-                          ),
-                          items: wallets.map((String item) {
-                            return DropdownMenuItem<String>(
-                              value: item,
-                              child: Text(item),
-                            );
-                          }).toList(),
-                          value: selectedWallet,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedWallet = value;
-                            });
-                          },
-                          hint: Text('Wallet'),
-                        ),
                         SizedBox(height: 12),
                         TextFormField(
                           maxLines: 3,
@@ -198,6 +321,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                             alignLabelWithHint: true,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide(width: 0.1),
                             ),
                             filled: true,
                             fillColor: const Color.fromARGB(255, 255, 255, 255),

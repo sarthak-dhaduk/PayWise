@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:paywise/screens/AddExpensePage.dart';
 import 'package:paywise/screens/AddIncomePage.dart';
+import 'package:paywise/screens/TransferPage.dart';
 import 'package:paywise/widgets/line_chart_widget.dart';
 import 'package:spincircle_bottom_bar/modals.dart';
 import 'package:spincircle_bottom_bar/spincircle_bottom_bar.dart';
@@ -443,8 +444,8 @@ class _floatingActionButtonState extends State<floatingActionButton> {
             SCBottomBarItem(
                 icon: Icons.home_rounded, title: "Home", onPressed: () {}),
             SCBottomBarItem(
-                icon: Icons.compare_arrows_rounded,
-                title: "Transaction",
+                icon: Icons.category_rounded,
+                title: "Category",
                 onPressed: () {}),
             SCBottomBarItem(
                 icon: Icons.pie_chart_rounded,
@@ -471,7 +472,11 @@ class _floatingActionButtonState extends State<floatingActionButton> {
                   size: 50,
                   color: Colors.blue,
                 ),
-                onPressed: () {}),
+                onPressed: () {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => TransferPage()),
+                  );
+                }),
             SCItem(
                 icon: Icon(
                   Icons.attach_money_rounded,
