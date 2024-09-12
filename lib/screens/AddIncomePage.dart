@@ -96,8 +96,8 @@ class _AddIncomePageState extends State<AddIncomePage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
                   ),
                   boxShadow: [
                     BoxShadow(
