@@ -1,12 +1,10 @@
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:paywise/screens/AddExpensePage.dart';
-import 'package:paywise/screens/AddIncomePage.dart';
-import 'package:paywise/screens/TransferPage.dart';
+import 'package:paywise/screens/NotificationPage.dart';
+import 'package:paywise/screens/TransactionPage.dart';
+import 'package:paywise/widgets/floatingActionButton.dart';
 import 'package:paywise/widgets/line_chart_widget.dart';
-import 'package:spincircle_bottom_bar/modals.dart';
-import 'package:spincircle_bottom_bar/spincircle_bottom_bar.dart';
 
 class HomeScreen extends StatelessWidget {
   @override
@@ -60,11 +58,19 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                           DropdownButton(),
-                          Container(
-                            child: Icon(
-                              Icons.notifications_sharp,
-                              size: 32,
-                              color: Color.fromRGBO(127, 61, 255, 1),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                    builder: (context) => NotificationPage()),
+                              );
+                            },
+                            child: Container(
+                              child: Icon(
+                                Icons.notifications_sharp,
+                                size: 32,
+                                color: Color.fromRGBO(127, 61, 255, 1),
+                              ),
                             ),
                           ),
                         ],
@@ -134,20 +140,28 @@ class HomeScreen extends StatelessWidget {
                             style: TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 18),
                           ),
-                          Container(
-                            height: 35,
-                            width: 60,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Color.fromRGBO(126, 61, 255, 0.297),
-                              border: Border.all(
-                                  color: Color.fromRGBO(126, 61, 255, 1)),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'See All',
-                                style: TextStyle(
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                    builder: (context) => Transactionpage()),
+                              );
+                            },
+                            child: Container(
+                              height: 35,
+                              width: 60,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: Color.fromRGBO(126, 61, 255, 0.297),
+                                border: Border.all(
                                     color: Color.fromRGBO(126, 61, 255, 1)),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'See All',
+                                  style: TextStyle(
+                                      color: Color.fromRGBO(126, 61, 255, 1)),
+                                ),
                               ),
                             ),
                           ),
@@ -189,7 +203,7 @@ class HomeScreen extends StatelessWidget {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
-  
+
   Widget _buildIncomeExpenseCard(String title, String amount, Color color) {
     return Expanded(
       child: Container(
@@ -216,12 +230,14 @@ class HomeScreen extends StatelessWidget {
               Column(
                 children: [
                   Text(title,
-                      style:
-                          TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
                   Text(amount,
-                      style:
-                          TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -400,97 +416,6 @@ class _FilterBarState extends State<FilterBar> {
         Text('Month'),
         Text('Year'),
       ],
-    );
-  }
-}
-
-class floatingActionButton extends StatefulWidget {
-  const floatingActionButton({super.key});
-
-  @override
-  State<floatingActionButton> createState() => _floatingActionButtonState();
-}
-
-class _floatingActionButtonState extends State<floatingActionButton> {
-  @override
-  Widget build(BuildContext context) {
-    return SpinCircleBottomBarHolder(
-      bottomNavigationBar: SCBottomBarDetails(
-          circleColors: [
-            const Color.fromARGB(255, 255, 255, 255),
-            const Color.fromARGB(0, 255, 153, 0),
-            const Color.fromARGB(0, 255, 82, 82)
-          ],
-          iconTheme: IconThemeData(
-              color: Colors.black45, size: 30, opticalSize: 40, weight: 500),
-          activeIconTheme:
-              IconThemeData(color: Color.fromRGBO(127, 61, 255, 1), size: 35),
-          backgroundColor: Colors.white,
-          titleStyle: TextStyle(color: Colors.black45, fontSize: 12),
-          activeTitleStyle: TextStyle(
-              color: Color.fromRGBO(127, 61, 255, 1),
-              fontSize: 12,
-              fontWeight: FontWeight.bold),
-          actionButtonDetails: SCActionButtonDetails(
-              color: Color.fromRGBO(127, 61, 255, 1),
-              icon: Icon(
-                Icons.add,
-                color: Colors.white,
-                size: 35,
-              ),
-              elevation: 3),
-          elevation: 3.0,
-          items: [
-            SCBottomBarItem(
-                icon: Icons.home_rounded, title: "Home", onPressed: () {}),
-            SCBottomBarItem(
-                icon: Icons.category_rounded,
-                title: "Category",
-                onPressed: () {}),
-            SCBottomBarItem(
-                icon: Icons.pie_chart_rounded,
-                title: "Budget",
-                onPressed: () {}),
-            SCBottomBarItem(
-                icon: Icons.person, title: "Profile", onPressed: () {}),
-          ],
-          circleItems: [
-            SCItem(
-                icon: Icon(
-                  Icons.money_off_csred_rounded,
-                  size: 50,
-                  color: Colors.red,
-                ),
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => AddExpensePage()),
-                  );
-                }),
-            SCItem(
-                icon: Icon(
-                  Icons.compare_arrows_rounded,
-                  size: 50,
-                  color: Colors.blue,
-                ),
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => TransferPage()),
-                  );
-                }),
-            SCItem(
-                icon: Icon(
-                  Icons.attach_money_rounded,
-                  size: 50,
-                  color: Colors.green,
-                ),
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => AddIncomePage()),
-                  );
-                }),
-          ],
-          bnbHeight: 80),
-      child: Container(),
     );
   }
 }
