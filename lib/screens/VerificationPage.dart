@@ -101,9 +101,7 @@ class _VerificationPageState extends State<VerificationPage> {
         ),
         leading: GestureDetector(
           onTap: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
-            );
+            Navigator.pop(context);
           },
           child: Icon(
             Icons.arrow_back_ios_rounded,
@@ -193,7 +191,7 @@ class _VerificationPageState extends State<VerificationPage> {
                   SizedBox(height: screenHeight * 0.01),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pushReplacement(
+                      Navigator.of(context).push(
                         MaterialPageRoute(
                             builder: (context) => ResetPasswordPage()),
                       );

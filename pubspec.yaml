@@ -57,6 +57,8 @@ dependencies:
   flutter_svg: ^2.0.10+1
   intl: ^0.19.0
   percent_indicator: ^4.2.3
+  flutter_colorpicker: ^1.1.0
+  circular_menu: ^4.0.0
   
 
 dev_dependencies:
@@ -84,6 +86,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/listBank/
     - assets/icons/
   #   - images/a_dot_ham.jpeg
 

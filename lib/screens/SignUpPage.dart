@@ -27,9 +27,7 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
         leading: GestureDetector(
           onTap: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => NextScreen()),
-            );
+            Navigator.pop(context);
           },
           child: Icon(Icons.arrow_back_ios_rounded,
               size: screenHeight * 0.03),
@@ -183,7 +181,7 @@ class _SignUpPageState extends State<SignUpPage> {
             SizedBox(height: screenHeight * 0.03),
             TextButton(
                 onPressed: () {
-                  Navigator.of(context).pushReplacement(
+                  Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => LoginPage()),
                   );
                 },
