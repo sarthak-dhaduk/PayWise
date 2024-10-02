@@ -1,11 +1,11 @@
 import 'dart:io';
+import 'package:flutter/physics.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:paywise/screens/DetailTransactionPage.dart';
-import 'package:paywise/screens/HomeScreen.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'package:paywise/widgets/CurrencyConverter.dart';
 
@@ -14,7 +14,7 @@ class AddExpensePage extends StatefulWidget {
   _AddExpensePageState createState() => _AddExpensePageState();
 }
 
-class _AddExpensePageState extends State<AddExpensePage> {
+class _AddExpensePageState extends State<AddExpensePage> with SingleTickerProviderStateMixin {
   String? selectedCategory;
   String? selectedWallet;
   XFile? _imageFile;
@@ -28,6 +28,52 @@ class _AddExpensePageState extends State<AddExpensePage> {
   double maxHeight = 650;
   double minHeight = 100;
 
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150), // Faster response time
+    );
+    _animation =
+        Tween<double>(begin: bottomContainerHeight, end: bottomContainerHeight)
+            .animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void onVerticalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      // Increase sensitivity to make scrolling faster
+      bottomContainerHeight -=
+          details.delta.dy * 1.7; // Increase scroll sensitivity
+      if (bottomContainerHeight > maxHeight) bottomContainerHeight = maxHeight;
+      if (bottomContainerHeight < minHeight) bottomContainerHeight = minHeight;
+    });
+  }
+
+  void onVerticalDragEnd(DragEndDetails details) {
+    // Adjust spring physics for a faster snap back and reaction
+    final velocity = details.primaryVelocity ?? 0;
+    final spring = SpringDescription(
+      mass: 1,
+      stiffness: 2000,  // Increased stiffness for faster spring action
+      damping: 7, // Further lowered damping for quicker response
+    );
+
+    final simulation = SpringSimulation(
+        spring, bottomContainerHeight, bottomContainerHeight, velocity / 1000);
+
+    _controller.animateWith(simulation);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,9 +85,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-            );
+           Navigator.pop(context);
           },
         ),
       ),
@@ -82,16 +126,10 @@ class _AddExpensePageState extends State<AddExpensePage> {
           Positioned(
             bottom: 0,
             child: GestureDetector(
-              onVerticalDragUpdate: (details) {
-                setState(() {
-                  bottomContainerHeight -= details.delta.dy;
-                  if (bottomContainerHeight > maxHeight)
-                    bottomContainerHeight = maxHeight;
-                  if (bottomContainerHeight < minHeight)
-                    bottomContainerHeight = minHeight;
-                });
-              },
-              child: Container(
+              onVerticalDragUpdate: onVerticalDragUpdate,
+              onVerticalDragEnd: onVerticalDragEnd,
+              child: AnimatedBuilder(animation: _controller, builder: (context, child) {
+                return Container(
                 width: MediaQuery.of(context).size.width,
                 height: bottomContainerHeight,
                 decoration: BoxDecoration(
@@ -261,7 +299,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
                     ),
                   ),
                 ),
-              ),
+              );
+              }),
             ),
           ),
         ],

@@ -1,11 +1,12 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:flutter/physics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:paywise/screens/DetailTransactionPage.dart';
-import 'package:paywise/screens/HomeScreen.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'package:paywise/widgets/CurrencyConverter.dart';
 
@@ -14,7 +15,8 @@ class AddIncomePage extends StatefulWidget {
   _AddIncomePageState createState() => _AddIncomePageState();
 }
 
-class _AddIncomePageState extends State<AddIncomePage> {
+class _AddIncomePageState extends State<AddIncomePage>
+    with SingleTickerProviderStateMixin {
   String? selectedCategory;
   String? selectedWallet;
   XFile? _imageFile;
@@ -28,6 +30,52 @@ class _AddIncomePageState extends State<AddIncomePage> {
   double maxHeight = 650;
   double minHeight = 100;
 
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150), // Faster response time
+    );
+    _animation =
+        Tween<double>(begin: bottomContainerHeight, end: bottomContainerHeight)
+            .animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void onVerticalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      // Increase sensitivity to make scrolling faster
+      bottomContainerHeight -=
+          details.delta.dy * 1.7; // Increase scroll sensitivity
+      if (bottomContainerHeight > maxHeight) bottomContainerHeight = maxHeight;
+      if (bottomContainerHeight < minHeight) bottomContainerHeight = minHeight;
+    });
+  }
+
+  void onVerticalDragEnd(DragEndDetails details) {
+    // Adjust spring physics for a faster snap back and reaction
+    final velocity = details.primaryVelocity ?? 0;
+    final spring = SpringDescription(
+      mass: 1,
+      stiffness: 2000,  // Increased stiffness for faster spring action
+      damping: 7, // Further lowered damping for quicker response
+    );
+
+    final simulation = SpringSimulation(
+        spring, bottomContainerHeight, bottomContainerHeight, velocity / 1000);
+
+    _controller.animateWith(simulation);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,9 +87,7 @@ class _AddIncomePageState extends State<AddIncomePage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => HomeScreen()),
-            );
+            Navigator.pop(context);
           },
         ),
       ),
@@ -82,185 +128,188 @@ class _AddIncomePageState extends State<AddIncomePage> {
           Positioned(
             bottom: 0,
             child: GestureDetector(
-              onVerticalDragUpdate: (details) {
-                setState(() {
-                  bottomContainerHeight -= details.delta.dy;
-                  if (bottomContainerHeight > maxHeight)
-                    bottomContainerHeight = maxHeight;
-                  if (bottomContainerHeight < minHeight)
-                    bottomContainerHeight = minHeight;
-                });
-              },
-              child: Container(
-                width: MediaQuery.of(context).size.width,
-                height: bottomContainerHeight,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SingleChildScrollView(
-                    physics: NeverScrollableScrollPhysics(),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 5,
-                          margin: EdgeInsets.only(top: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+              onVerticalDragUpdate: onVerticalDragUpdate,
+              onVerticalDragEnd: onVerticalDragEnd,
+              child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: bottomContainerHeight,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(32),
+                          topRight: Radius.circular(32),
                         ),
-                        SizedBox(height: 16),
-                        DropdownButtonFormField2<String>(
-                          decoration: InputDecoration(
-                            focusColor: Color.fromRGBO(127, 61, 255, 1),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            filled: true,
-                            fillColor: const Color.fromARGB(0, 255, 255, 255),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: Offset(0, -2),
                           ),
-                          iconStyleData: const IconStyleData(
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                            ),
-                            iconSize: 30,
-                            iconEnabledColor: Color.fromRGBO(0, 0, 0, 1),
-                            iconDisabledColor:
-                                Color.fromARGB(255, 255, 255, 255),
-                          ),
-                          items: categories.map((String item) {
-                            return DropdownMenuItem<String>(
-                              value: item,
-                              child: Text(item),
-                            );
-                          }).toList(),
-                          value: selectedCategory,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedCategory = value;
-                            });
-                          },
-                          hint: Text('Category'),
-                        ),
-                        SizedBox(height: 12),
-                        DropdownButtonFormField2<String>(
-                          decoration: InputDecoration(
-                            focusColor: Color.fromRGBO(127, 61, 255, 1),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            filled: true,
-                            fillColor: const Color.fromARGB(0, 255, 255, 255),
-                          ),
-                          iconStyleData: const IconStyleData(
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                            ),
-                            iconSize: 30,
-                            iconEnabledColor: Color.fromRGBO(0, 0, 0, 1),
-                            iconDisabledColor:
-                                Color.fromARGB(255, 255, 255, 255),
-                          ),
-                          items: wallets.map((String item) {
-                            return DropdownMenuItem<String>(
-                              value: item,
-                              child: Text(item),
-                            );
-                          }).toList(),
-                          value: selectedWallet,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedWallet = value;
-                            });
-                          },
-                          hint: Text('Wallet'),
-                        ),
-                        SizedBox(height: 12),
-                        TextFormField(
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            labelText: 'Description',
-                            labelStyle: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w500),
-                            alignLabelWithHint: true,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            filled: true,
-                            fillColor: const Color.fromARGB(255, 255, 255, 255),
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        _imageFile == null && _documentPath == null
-                            ? GestureDetector(
-                                onTap: () => _pickAttachment(context),
-                                child: DottedBorder(
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: SingleChildScrollView(
+                          physics: NeverScrollableScrollPhysics(),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 5,
+                                margin: EdgeInsets.only(top: 8),
+                                decoration: BoxDecoration(
                                   color: Colors.grey,
-                                  borderType: BorderType.RRect,
-                                  radius: Radius.circular(12),
-                                  dashPattern: [6, 3],
-                                  strokeWidth: 1.5,
-                                  child: Container(
-                                    width: double.infinity,
-                                    height: 70,
-                                    color:
-                                        const Color.fromARGB(0, 238, 238, 238),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.attach_file_rounded,
-                                            color: Colors.grey),
-                                        SizedBox(width: 8),
-                                        Text('Add attachment',
-                                            style:
-                                                TextStyle(color: Colors.grey)),
-                                      ],
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              DropdownButtonFormField2<String>(
+                                decoration: InputDecoration(
+                                  focusColor: Color.fromRGBO(127, 61, 255, 1),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  filled: true,
+                                  fillColor:
+                                      const Color.fromARGB(0, 255, 255, 255),
+                                ),
+                                iconStyleData: const IconStyleData(
+                                  icon: Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                  ),
+                                  iconSize: 30,
+                                  iconEnabledColor: Color.fromRGBO(0, 0, 0, 1),
+                                  iconDisabledColor:
+                                      Color.fromARGB(255, 255, 255, 255),
+                                ),
+                                items: categories.map((String item) {
+                                  return DropdownMenuItem<String>(
+                                    value: item,
+                                    child: Text(item),
+                                  );
+                                }).toList(),
+                                value: selectedCategory,
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedCategory = value;
+                                  });
+                                },
+                                hint: Text('Category'),
+                              ),
+                              SizedBox(height: 12),
+                              DropdownButtonFormField2<String>(
+                                decoration: InputDecoration(
+                                  focusColor: Color.fromRGBO(127, 61, 255, 1),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  filled: true,
+                                  fillColor:
+                                      const Color.fromARGB(0, 255, 255, 255),
+                                ),
+                                iconStyleData: const IconStyleData(
+                                  icon: Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                  ),
+                                  iconSize: 30,
+                                  iconEnabledColor: Color.fromRGBO(0, 0, 0, 1),
+                                  iconDisabledColor:
+                                      Color.fromARGB(255, 255, 255, 255),
+                                ),
+                                items: wallets.map((String item) {
+                                  return DropdownMenuItem<String>(
+                                    value: item,
+                                    child: Text(item),
+                                  );
+                                }).toList(),
+                                value: selectedWallet,
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedWallet = value;
+                                  });
+                                },
+                                hint: Text('Wallet'),
+                              ),
+                              SizedBox(height: 12),
+                              TextFormField(
+                                maxLines: 3,
+                                decoration: InputDecoration(
+                                  labelText: 'Description',
+                                  labelStyle: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500),
+                                  alignLabelWithHint: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  filled: true,
+                                  fillColor:
+                                      const Color.fromARGB(255, 255, 255, 255),
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              _imageFile == null && _documentPath == null
+                                  ? GestureDetector(
+                                      onTap: () => _pickAttachment(context),
+                                      child: DottedBorder(
+                                        color: Colors.grey,
+                                        borderType: BorderType.RRect,
+                                        radius: Radius.circular(12),
+                                        dashPattern: [6, 3],
+                                        strokeWidth: 1.5,
+                                        child: Container(
+                                          width: double.infinity,
+                                          height: 70,
+                                          color: const Color.fromARGB(
+                                              0, 238, 238, 238),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(Icons.attach_file_rounded,
+                                                  color: Colors.grey),
+                                              SizedBox(width: 8),
+                                              Text('Add attachment',
+                                                  style: TextStyle(
+                                                      color: Colors.grey)),
+                                            ],
+                                          ),
+                                        ),
+                                      ))
+                                  : _buildAttachmentPreview(),
+                              SizedBox(height: 16),
+                              SizedBox(
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              DetailTransactionPage()),
+                                    );
+                                  },
+                                  child: Text('Continue',
+                                      style: TextStyle(
+                                          fontSize: 18, color: Colors.white)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        Color.fromRGBO(127, 61, 255, 1),
+                                    minimumSize: Size(double.infinity, 48),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                ))
-                            : _buildAttachmentPreview(),
-                        SizedBox(height: 16),
-                        SizedBox(
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                    builder: (context) => DetailTransactionPage()),
-                              );
-                            },
-                            child: Text('Continue',
-                                style: TextStyle(
-                                    fontSize: 18, color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromRGBO(127, 61, 255, 1),
-                              minimumSize: Size(double.infinity, 48),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+                      ),
+                    );
+                  }),
             ),
           ),
         ],

@@ -26,9 +26,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         leading: GestureDetector(
           onTap: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => NextScreen()),
-            );
+            Navigator.pop(context);
           },
           child: Icon(Icons.arrow_back_ios_rounded,
               size: screenHeight * 0.03),
@@ -102,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
             Center(
               child: TextButton(
                 onPressed: () {
-                  Navigator.of(context).pushReplacement(
+                  Navigator.of(context).push(
                     MaterialPageRoute(
                         builder: (context) => ForgotPasswordPage()),
                   );
@@ -120,7 +118,7 @@ class _LoginPageState extends State<LoginPage> {
             Center(
               child: GestureDetector(
                 onTap: () {
-                  Navigator.of(context).pushReplacement(
+                  Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => SignUpPage()),
                   );
                 },

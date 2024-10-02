@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:paywise/screens/AddBudgetPage.dart';
 import 'package:paywise/screens/DetailBudgetPage.dart';
 import 'package:paywise/screens/HomeScreen.dart';
-import 'package:paywise/widgets/floatingActionButton.dart';
+import 'package:paywise/widgets/CircularMenuWidget.dart';
+import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 
 class BudgetPage extends StatefulWidget {
@@ -10,6 +12,7 @@ class BudgetPage extends StatefulWidget {
 }
 
 class _BudgetPageState extends State<BudgetPage> {
+  int _activeIndex = 2;
   int _currentMonthIndex = 4;
 
   final List<String> _months = [
@@ -94,10 +97,7 @@ class _BudgetPageState extends State<BudgetPage> {
                       IconButton(
                         icon: Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                                builder: (context) => HomeScreen()),
-                          );
+                          Navigator.pop(context);
                         },
                       ),
                       Text(
@@ -278,6 +278,10 @@ class _BudgetPageState extends State<BudgetPage> {
                           child: ElevatedButton(
                             onPressed: () {
                               // Button action
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (context) => AddBudgetPage()),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color.fromRGBO(127, 61, 255, 1),
@@ -303,7 +307,10 @@ class _BudgetPageState extends State<BudgetPage> {
           ),
         ],
       ),
-      floatingActionButton: floatingActionButton(),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        activeIndex: _activeIndex,
+      ),
+      floatingActionButton: CircularMenuWidget(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

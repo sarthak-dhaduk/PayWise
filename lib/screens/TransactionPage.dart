@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart'; // For date formatting
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:paywise/screens/DetailTransactionPage.dart';
-
-import '../widgets/floatingActionButton.dart';
+import 'package:paywise/widgets/CircularMenuWidget.dart';
+import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
 
 // Transaction model
 class Transaction {
@@ -36,6 +36,7 @@ class Transactionpage extends StatefulWidget {
 }
 
 class _TransactionpageState extends State<Transactionpage> {
+  int _activeIndex = 0;
   int selectedFiltersCount = 0;
   final List<Transaction> transactions = [
     Transaction(
@@ -258,7 +259,10 @@ class _TransactionpageState extends State<Transactionpage> {
           ),
         ],
       ),
-      floatingActionButton: floatingActionButton(),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        activeIndex: _activeIndex,
+      ),
+      floatingActionButton: CircularMenuWidget(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

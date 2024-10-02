@@ -19,9 +19,7 @@ class ForgotPasswordPage extends StatelessWidget {
         ),
         leading: GestureDetector(
           onTap: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => LoginPage()),
-            );
+            Navigator.pop(context);
           },
           child: Icon(
             Icons.arrow_back_ios_rounded,
@@ -73,10 +71,7 @@ class ForgotPasswordPage extends StatelessWidget {
                 SizedBox(height: screenHeight * 0.05),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                          builder: (context) => VerificationPage()),
-                    );
+                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color.fromRGBO(127, 61, 255, 1),
