@@ -59,6 +59,7 @@ dependencies:
   percent_indicator: ^4.2.3
   flutter_colorpicker: ^1.1.0
   circular_menu: ^4.0.0
+  firebase_core: ^3.6.0
   
 
 dev_dependencies:
