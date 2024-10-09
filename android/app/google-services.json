@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "614806614589",
+    "project_id": "paywise-0220",
+    "storage_bucket": "paywise-0220.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614806614589:android:f0a3d1b44290dfaffd3054",
+        "android_client_info": {
+          "package_name": "com.example.paywise"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8zGL14FHvDXo3m-CQB7SB6u5YwYgKKb0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

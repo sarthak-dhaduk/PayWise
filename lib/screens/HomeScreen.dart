@@ -108,12 +108,12 @@ class HomeScreen extends StatelessWidget {
                             Row(
                               children: [
                                 _buildIncomeExpenseCard(
-                                    'Income', '₹5000', Colors.green),
+                                    'Income', '5000', Colors.green),
                                 SizedBox(
                                   width: 10,
                                 ),
                                 _buildIncomeExpenseCard(
-                                    'Expenses', '₹1200', Colors.red),
+                                    'Expenses', '1200', Colors.red),
                               ],
                             ),
                           ],
@@ -411,31 +411,33 @@ class _FilterBarState extends State<FilterBar> {
 
   @override
   Widget build(BuildContext context) {
-    return ToggleButtons(
-      borderRadius: BorderRadius.circular(20),
-      fillColor: Color.fromRGBO(126, 61, 255, 0.297),
-      selectedBorderColor: Color.fromRGBO(127, 61, 255, 1),
-      selectedColor: Color.fromRGBO(127, 61, 255, 1),
-      color: Colors.black,
-      borderColor: Colors.black12,
-      constraints: BoxConstraints(
-        minHeight: 35.0,
-        minWidth: 80.0,
+    return Expanded(
+      child: ToggleButtons(
+        borderRadius: BorderRadius.circular(20),
+        fillColor: Color.fromRGBO(126, 61, 255, 0.297),
+        selectedBorderColor: Color.fromRGBO(127, 61, 255, 1),
+        selectedColor: Color.fromRGBO(127, 61, 255, 1),
+        color: Colors.black,
+        borderColor: Colors.black12,
+        constraints: BoxConstraints(
+          minHeight: 35.0,
+          minWidth: 75.0,
+        ),
+        isSelected: isSelected,
+        onPressed: (int index) {
+          setState(() {
+            for (int i = 0; i < isSelected.length; i++) {
+              isSelected[i] = i == index;
+            }
+          });
+        },
+        children: <Widget>[
+          Text('Today'),
+          Text('Week'),
+          Text('Month'),
+          Text('Year'),
+        ],
       ),
-      isSelected: isSelected,
-      onPressed: (int index) {
-        setState(() {
-          for (int i = 0; i < isSelected.length; i++) {
-            isSelected[i] = i == index;
-          }
-        });
-      },
-      children: <Widget>[
-        Text('Today'),
-        Text('Week'),
-        Text('Month'),
-        Text('Year'),
-      ],
     );
   }
 }
