@@ -64,6 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '614806614589',
     projectId: 'paywise-0220',
     storageBucket: 'paywise-0220.appspot.com',
+    androidClientId: '614806614589-r7jcvb7bkvrc0h2vdn3orea3elfdnatb.apps.googleusercontent.com',
+    iosClientId: '614806614589-ngn2bd65ih94kvl86rpj159lqr32eo7j.apps.googleusercontent.com',
     iosBundleId: 'com.example.paywise',
   );
 
@@ -73,6 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '614806614589',
     projectId: 'paywise-0220',
     storageBucket: 'paywise-0220.appspot.com',
+    androidClientId: '614806614589-r7jcvb7bkvrc0h2vdn3orea3elfdnatb.apps.googleusercontent.com',
+    iosClientId: '614806614589-ngn2bd65ih94kvl86rpj159lqr32eo7j.apps.googleusercontent.com',
     iosBundleId: 'com.example.paywise',
   );
 
@@ -85,4 +89,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'paywise-0220.appspot.com',
     measurementId: 'G-ME51GSL0M3',
   );
+
 }

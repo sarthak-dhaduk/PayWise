@@ -81,7 +81,7 @@ class AuthService {
 
       // Clear shared preferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await prefs.remove('email');
     } catch (e) {
       log("Error signing out: $e");
     }
