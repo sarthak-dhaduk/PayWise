@@ -12,7 +12,20 @@
           "package_name": "com.example.paywise"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "614806614589-r7jcvb7bkvrc0h2vdn3orea3elfdnatb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.paywise",
+            "certificate_hash": "8f2ec7e18112b4deb83bd473f20c6e44d5a8456a"
+          }
+        },
+        {
+          "client_id": "614806614589-4pd5m86p5r1u9eh0fjag3gm585nm3il6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD8zGL14FHvDXo3m-CQB7SB6u5YwYgKKb0"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "614806614589-4pd5m86p5r1u9eh0fjag3gm585nm3il6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "614806614589-ngn2bd65ih94kvl86rpj159lqr32eo7j.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.paywise"
+              }
+            }
+          ]
         }
       }
     }

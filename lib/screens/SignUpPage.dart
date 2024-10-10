@@ -55,7 +55,24 @@ class _SignUpPageState extends State<SignUpPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            SizedBox(height: screenHeight * 0.1),
+            SizedBox(height: screenHeight * 0.02),
+            Text(
+              "Join Us!",
+              style: TextStyle(
+                fontSize: screenHeight * 0.03,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.01),
+            Text(
+              "Create your account and start managing your finances effortlessly.",
+              style: TextStyle(
+                fontSize: screenHeight * 0.02,
+                color: Colors.black54,
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.02),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
@@ -105,7 +122,8 @@ class _SignUpPageState extends State<SignUpPage> {
             SizedBox(height: screenHeight * 0.03),
             Row(
               children: <Widget>[
-                SizedBox(
+                Container(
+                  margin: EdgeInsets.all(3),
                   height: screenHeight * 0.04,
                   width: screenHeight * 0.04,
                   child: Transform.scale(
@@ -173,14 +191,14 @@ class _SignUpPageState extends State<SignUpPage> {
                     fontSize: screenHeight * 0.025, color: Colors.white),
               ),
             ),
-            SizedBox(height: screenHeight * 0.03),
+            SizedBox(height: screenHeight * 0.02),
             Text(
               "Or with",
               textAlign: TextAlign.center,
               style:
                   TextStyle(color: Colors.grey, fontSize: screenHeight * 0.02),
             ),
-            SizedBox(height: screenHeight * 0.03),
+            SizedBox(height: screenHeight * 0.02),
             ElevatedButton.icon(
               onPressed: () async {
                 final user = await _authService.signInWithGoogle();
@@ -206,12 +224,12 @@ class _SignUpPageState extends State<SignUpPage> {
                 height: screenHeight * 0.04,
               ),
               label: Text(
-                "Sign Up with Google",
+                "Sign Up With Google",
                 style: TextStyle(
                     fontSize: screenHeight * 0.025, color: Colors.black),
               ),
             ),
-            SizedBox(height: screenHeight * 0.03),
+            SizedBox(height: screenHeight * 0.01),
             TextButton(
                 onPressed: () {
                   Navigator.of(context).push(

@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:paywise/Services/auth_service.dart';
@@ -68,7 +67,24 @@ class _LoginPageState extends State<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
-            SizedBox(height: screenHeight * 0.2),
+            SizedBox(height: screenHeight * 0.02),
+            Text(
+              "Welcome Back!",
+              style: TextStyle(
+                fontSize: screenHeight * 0.03,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.01),
+            Text(
+              "Sign in to access your account and keep track of your expenses.",
+              style: TextStyle(
+                fontSize: screenHeight * 0.02,
+                color: Colors.black54,
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.05),
             TextField(
               controller: _email,
               decoration: InputDecoration(
@@ -105,22 +121,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             SizedBox(height: screenHeight * 0.03),
-            ElevatedButton(
-              onPressed: _login,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color.fromRGBO(127, 61, 255, 1),
-                padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
-              child: Text(
-                "Login",
-                style: TextStyle(
-                    fontSize: screenHeight * 0.025, color: Colors.white),
-              ),
-            ),
-            SizedBox(height: screenHeight * 0.03),
             Center(
               child: TextButton(
                 onPressed: () {
@@ -136,6 +136,51 @@ class _LoginPageState extends State<LoginPage> {
                     fontSize: screenHeight * 0.02,
                   ),
                 ),
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.03),
+            ElevatedButton(
+              onPressed: _login,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color.fromRGBO(127, 61, 255, 1),
+                padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              child: Text(
+                "Sign In",
+                style: TextStyle(
+                    fontSize: screenHeight * 0.025, color: Colors.white),
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.03),
+            Text(
+              "Or with",
+              textAlign: TextAlign.center,
+              style:
+                  TextStyle(color: Colors.grey, fontSize: screenHeight * 0.02),
+            ),
+            SizedBox(height: screenHeight * 0.03),
+            ElevatedButton.icon(
+              onPressed: _handleGoogleSignIn,
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: Colors.white,
+                side: BorderSide(color: Colors.grey),
+                padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              icon: Image.asset(
+                'assets/images/google_logo.png',
+                height: screenHeight * 0.04,
+              ),
+              label: Text(
+                "Sign In With Google",
+                style: TextStyle(
+                    fontSize: screenHeight * 0.025, color: Colors.black),
               ),
             ),
             SizedBox(height: screenHeight * 0.03),

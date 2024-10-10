@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:paywise/Services/auth_service.dart';
 import 'package:paywise/screens/AccountPage.dart';
 import 'package:paywise/screens/LoginPage.dart';
 import 'package:paywise/screens/PricingDetailsPage.dart';
@@ -8,8 +9,10 @@ import 'package:paywise/screens/ProfileUpdatePage.dart';
 import 'package:paywise/screens/SettingsPage.dart';
 import 'package:paywise/widgets/CircularMenuWidget.dart';
 import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatelessWidget {
+  final AuthService auth = AuthService();
   int _activeIndex = 3;
   final Color primaryColor = Color.fromRGBO(127, 61, 255, 1);
 
@@ -18,27 +21,31 @@ class ProfilePage extends StatelessWidget {
       'svgs': 'assets/icons/Wallet.svg',
       'text': 'Account',
       'color': Color.fromRGBO(127, 61, 255, 0.1), // Light purple
-      'root' : AccountPage(),
+      'root': AccountPage(),
     },
     {
       'svgs': 'assets/icons/settings.svg',
       'text': 'Settings',
       'color': Color.fromRGBO(127, 61, 255, 0.1), // Lighter purple
-      'root' : SettingsPage(),
+      'root': SettingsPage(),
     },
     {
       'svgs': 'assets/icons/upload.svg',
       'text': 'Upgrade',
       'color': Color.fromRGBO(127, 61, 255, 0.1), // More vibrant purple
-      'root' : PricingDetailsPage(),
+      'root': PricingDetailsPage(),
     },
     {
       'svgs': 'assets/icons/logout.svg',
       'text': 'Logout',
       'color': Color.fromRGBO(255, 61, 61, 0.1), // Light red
-      'root' : LoginPage(),
+      'root': LoginPage(),
     }
   ];
+
+  void _logout() async {
+    await auth.signout();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -150,11 +157,19 @@ class ProfilePage extends StatelessWidget {
               itemCount: menuItems.length,
               itemBuilder: (context, index) {
                 return GestureDetector(
-                  onTap: () {
-                    // Navigate to the respective page
-                    Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) =>  menuItems[index]['root']),
-                  );
+                  onTap: () async {
+                    if (menuItems[index]['text'] == 'Logout') {
+                      _logout(); // Correctly log out
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginPage()),
+                      );
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (context) => menuItems[index]['root']),
+                      );
+                    }
                   },
                   child: Container(
                     margin: EdgeInsets.symmetric(horizontal: 20, vertical: 1),

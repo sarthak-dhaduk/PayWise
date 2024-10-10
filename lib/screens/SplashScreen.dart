@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:paywise/screens/HomeScreen.dart';
 import 'package:paywise/screens/LoginPage.dart';
 import 'package:paywise/screens/SignUpPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
@@ -13,13 +15,43 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Future<bool> _checkFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool isFirstTime =
+        prefs.getBool('isFirstTime') ?? true; // Default to true if not found
+    if (isFirstTime) {
+      await prefs.setBool(
+          'isFirstTime', false); // Set it to false after the first time
+    }
+    return isFirstTime;
+  }
+
+  Future<bool> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey('email'); // Check if the email key exists
+  }
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(Duration(seconds: 6), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => NextScreen()),
-      );
+    Future.delayed(Duration(seconds: 6), () async {
+      bool isFirstTime = await _checkFirstTime();
+      if (isFirstTime) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => NextScreen()),
+        );
+      } else {
+        bool isLoggedIn = await _checkLoginStatus();
+        if (isLoggedIn) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => HomeScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => LoginPage()),
+          );
+        }
+      }
     });
   }
 
@@ -89,7 +121,8 @@ class _NextScreenState extends State<NextScreen> {
     buildPage(
       imagePath: 'assets/images/know_money.png',
       title: 'Know where your money goes',
-      subtitle: 'Track your transaction easily, with categories and financial report',
+      subtitle:
+          'Track your transaction easily, with categories and financial report',
     ),
     buildPage(
       imagePath: 'assets/images/planning_ahead.png',
@@ -102,7 +135,7 @@ class _NextScreenState extends State<NextScreen> {
   Widget build(BuildContext context) {
     var screenHeight = MediaQuery.of(context).size.height;
     var screenWidth = MediaQuery.of(context).size.width;
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -145,8 +178,11 @@ class _NextScreenState extends State<NextScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   backgroundColor: Color.fromARGB(255, 140, 82, 255),
-                  padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02), // Responsive button padding
-                  textStyle: TextStyle(fontSize: screenHeight * 0.03), // Responsive font size
+                  padding: EdgeInsets.symmetric(
+                      vertical:
+                          screenHeight * 0.02), // Responsive button padding
+                  textStyle: TextStyle(
+                      fontSize: screenHeight * 0.03), // Responsive font size
                 ),
                 child: Text(
                   'Sign Up',
@@ -198,14 +234,16 @@ class _NextScreenState extends State<NextScreen> {
       builder: (context, constraints) {
         var screenHeight = MediaQuery.of(context).size.height;
         // var screenWidth = MediaQuery.of(context).size.width;
-        
-        return SingleChildScrollView( // Added scroll view to avoid overflow
+
+        return SingleChildScrollView(
+          // Added scroll view to avoid overflow
           child: Padding(
             padding: EdgeInsets.all(screenHeight * 0.05), // Responsive padding
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(imagePath, height: screenHeight * 0.4), // Responsive image height
+                Image.asset(imagePath,
+                    height: screenHeight * 0.4), // Responsive image height
                 SizedBox(height: screenHeight * 0.06), // Responsive spacing
                 Text(
                   title,
