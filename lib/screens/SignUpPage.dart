@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:paywise/Services/auth_service.dart';
 import 'package:paywise/screens/HomeScreen.dart';
 import 'package:paywise/screens/LoginPage.dart';
-import 'package:paywise/screens/SplashScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -9,6 +10,19 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final _nameController = TextEditingController(); // Added name controller
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+
+  @override
+  void dispose() {
+    _nameController.dispose(); // Dispose of the name controller
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   bool _isPasswordVisible = false;
   bool _isChecked = false;
 
@@ -29,8 +43,7 @@ class _SignUpPageState extends State<SignUpPage> {
           onTap: () {
             Navigator.pop(context);
           },
-          child: Icon(Icons.arrow_back_ios_rounded,
-              size: screenHeight * 0.03),
+          child: Icon(Icons.arrow_back_ios_rounded, size: screenHeight * 0.03),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -44,6 +57,7 @@ class _SignUpPageState extends State<SignUpPage> {
           children: <Widget>[
             SizedBox(height: screenHeight * 0.1),
             TextField(
+              controller: _nameController,
               decoration: InputDecoration(
                 labelText: "Name",
                 labelStyle: TextStyle(fontSize: screenHeight * 0.022),
@@ -54,6 +68,7 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
             SizedBox(height: screenHeight * 0.03),
             TextField(
+              controller: _emailController,
               decoration: InputDecoration(
                 labelText: "Email",
                 labelStyle: TextStyle(fontSize: screenHeight * 0.022),
@@ -64,6 +79,7 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
             SizedBox(height: screenHeight * 0.03),
             TextField(
+              controller: _passwordController,
               obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
                 labelText: "Password",
@@ -131,10 +147,18 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
             SizedBox(height: screenHeight * 0.03),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => HomeScreen()),
+              onPressed: () async {
+                final user = await _authService.createUserWithEmailAndPassword(
+                  _emailController.text,
+                  _passwordController.text,
                 );
+                if (user != null) {
+                  await _saveToSharedPrefs(user.email ?? "", user.uid);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => HomeScreen()),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color.fromRGBO(127, 61, 255, 1),
@@ -153,12 +177,21 @@ class _SignUpPageState extends State<SignUpPage> {
             Text(
               "Or with",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Colors.grey, fontSize: screenHeight * 0.02),
+              style:
+                  TextStyle(color: Colors.grey, fontSize: screenHeight * 0.02),
             ),
             SizedBox(height: screenHeight * 0.03),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () async {
+                final user = await _authService.signInWithGoogle();
+                if (user != null) {
+                  await _saveToSharedPrefs(user.email ?? "", user.uid);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => HomeScreen()),
+                  );
+                }
+              },
               style: ElevatedButton.styleFrom(
                 elevation: 0,
                 backgroundColor: Colors.white,
@@ -205,5 +238,11 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveToSharedPrefs(String email, String uid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('email', email);
+    await prefs.setString('uid', uid);
   }
 }

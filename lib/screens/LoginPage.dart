@@ -1,8 +1,12 @@
+import 'dart:math';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:paywise/Services/auth_service.dart';
 import 'package:paywise/screens/ForgotPasswordPage.dart';
 import 'package:paywise/screens/HomeScreen.dart';
 import 'package:paywise/screens/SignUpPage.dart';
-import 'package:paywise/screens/SplashScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -10,6 +14,29 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _auth = AuthService();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final FirebaseAuth _authh = FirebaseAuth.instance;
+  User? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _authh.authStateChanges().listen((event) {
+      setState(() {
+        _user = event;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _email.dispose();
+    _password.dispose();
+  }
+
   bool _isPasswordVisible = false;
 
   @override
@@ -28,8 +55,7 @@ class _LoginPageState extends State<LoginPage> {
           onTap: () {
             Navigator.pop(context);
           },
-          child: Icon(Icons.arrow_back_ios_rounded,
-              size: screenHeight * 0.03),
+          child: Icon(Icons.arrow_back_ios_rounded, size: screenHeight * 0.03),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -44,6 +70,7 @@ class _LoginPageState extends State<LoginPage> {
           children: <Widget>[
             SizedBox(height: screenHeight * 0.2),
             TextField(
+              controller: _email,
               decoration: InputDecoration(
                 labelText: "Email",
                 labelStyle: TextStyle(fontSize: screenHeight * 0.022),
@@ -55,6 +82,7 @@ class _LoginPageState extends State<LoginPage> {
             SizedBox(height: screenHeight * 0.03),
             TextField(
               obscureText: !_isPasswordVisible,
+              controller: _password,
               decoration: InputDecoration(
                 labelText: "Password",
                 labelStyle: TextStyle(fontSize: screenHeight * 0.022),
@@ -78,11 +106,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             SizedBox(height: screenHeight * 0.03),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => HomeScreen()),
-                );
-              },
+              onPressed: _login,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color.fromRGBO(127, 61, 255, 1),
                 padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
@@ -144,5 +168,44 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      final User? user = await _auth.signInWithGoogle();
+      if (user != null) {
+        goToHome(context);
+      }
+    } catch (error) {
+      print("Error during Google Sign-In: $error");
+    }
+  }
+
+  void goToSignup(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => SignUpPage()),
+      );
+
+  void goToHome(BuildContext context) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+
+  Future<void> _login() async {
+    final User? user = await _auth.loginUserWithEmailAndPassword(
+      _email.text,
+      _password.text,
+    );
+
+    if (user != null) {
+      // log("User Logged In");
+
+      // Save user data to Shared Preferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('email', _email.text);
+      await prefs.setString('uid', user.uid);
+
+      goToHome(context);
+    }
   }
 }
