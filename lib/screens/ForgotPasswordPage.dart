@@ -71,7 +71,9 @@ class ForgotPasswordPage extends StatelessWidget {
                 SizedBox(height: screenHeight * 0.05),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (context) => VerificationPage()),
+                  );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color.fromRGBO(127, 61, 255, 1),

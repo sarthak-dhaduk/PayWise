@@ -9,6 +9,7 @@ import 'package:paywise/screens/ProfileUpdatePage.dart';
 import 'package:paywise/screens/SettingsPage.dart';
 import 'package:paywise/widgets/CircularMenuWidget.dart';
 import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -158,18 +159,25 @@ class ProfilePage extends StatelessWidget {
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () async {
-                    if (menuItems[index]['text'] == 'Logout') {
-                      _logout(); // Correctly log out
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginPage()),
-                      );
-                    } else {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (context) => menuItems[index]['root']),
-                      );
-                    }
+                    await CustomLoader.showLoaderForTask(
+                        context: context,
+                        task: () async {
+                          //Code
+                          if (menuItems[index]['text'] == 'Logout') {
+                            _logout(); // Correctly log out
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => LoginPage()),
+                            );
+                          } else {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      menuItems[index]['root']),
+                            );
+                          }
+                        });
                   },
                   child: Container(
                     margin: EdgeInsets.symmetric(horizontal: 20, vertical: 1),
