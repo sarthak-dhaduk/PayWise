@@ -1,15 +1,86 @@
 import 'package:flutter/material.dart';
-import 'package:paywise/screens/ForgotPasswordPage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:paywise/screens/HomeScreen.dart';
+import 'package:paywise/screens/LoginPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ResetPasswordPage extends StatefulWidget {
+class SetPassword extends StatefulWidget {
+  final String uid;
+
+  SetPassword({required this.uid});
+
   @override
-  _ResetPasswordPageState createState() => _ResetPasswordPageState();
+  _SetPasswordState createState() => _SetPasswordState();
 }
 
-class _ResetPasswordPageState extends State<ResetPasswordPage> {
+class _SetPasswordState extends State<SetPassword> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  void _setPassword() async {
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          if (password.isNotEmpty &&
+              confirmPassword.isNotEmpty &&
+              password == confirmPassword) {
+            try {
+              // Update the password in Firestore
+              await FirebaseFirestore.instance
+                  .collection('authentication')
+                  .doc(widget.uid)
+                  .update({'password': password});
+
+              // Fetch user details from Firestore
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('authentication')
+                  .doc(widget.uid)
+                  .get();
+
+              if (userDoc.exists) {
+                final userData = userDoc.data();
+                if (userData != null) {
+                  // Save user data to Shared Preferences
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('email', userData['email'] ?? '');
+                  await prefs.setString('uid', userData['auth_id'] ?? '');
+
+                  // Navigate to HomeScreen
+                  goToHome(context);
+                }
+              }
+            } catch (e) {
+              print('Error while setting password: $e');
+              // Show error message if there's an issue with password setting
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text(
+                        'Error while setting password. Please try again!')),
+              );
+            }
+          } else {
+            // Show error message if passwords do not match
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text('Passwords do not match or fields are empty!')),
+            );
+          }
+        });
+  }
+
+// Function to navigate to HomeScreen
+  void goToHome(BuildContext context) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomeScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +92,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Reset Password"),
+        title: Text("Set Password"),
         leading: GestureDetector(
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => LoginPage()),
             );
           },
           child: Icon(Icons.arrow_back_ios_rounded),
@@ -46,7 +117,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           children: <Widget>[
             SizedBox(height: screenHeight * 0.02),
             Text(
-              "Reset Your Password.",
+              "Set your Password.",
               style: TextStyle(
                 fontSize: screenHeight * 0.03,
                 fontWeight: FontWeight.bold,
@@ -55,7 +126,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             ),
             SizedBox(height: screenHeight * 0.01),
             Text(
-              "Enter your new password to complete the recovery process.",
+              "Enter a strong password to secure your account.",
               style: TextStyle(
                 fontSize: screenHeight * 0.02,
                 color: Colors.black54,
@@ -63,9 +134,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             ),
             SizedBox(height: screenHeight * 0.05),
             TextField(
+              controller: _passwordController,
               obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
-                labelText: "New Password",
+                labelText: "Set Password",
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.0),
                 ),
@@ -85,9 +157,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             ),
             SizedBox(height: screenHeight * 0.02),
             TextField(
+              controller: _confirmPasswordController,
               obscureText: !_isConfirmPasswordVisible,
               decoration: InputDecoration(
-                labelText: "Retype new password",
+                labelText: "Retype password",
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.0),
                 ),
@@ -107,11 +180,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
             ),
             SizedBox(height: screenHeight * 0.05),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => HomeScreen()),
-                );
-              },
+              onPressed: _setPassword, // Call the function to set the password
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color.fromRGBO(127, 61, 255, 1),
                 padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
@@ -121,7 +190,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               ),
               child: Text(
                 "Continue",
-                style: TextStyle(fontSize: screenHeight * 0.022, color: Colors.white),
+                style: TextStyle(
+                    fontSize: screenHeight * 0.022, color: Colors.white),
               ),
             ),
           ],

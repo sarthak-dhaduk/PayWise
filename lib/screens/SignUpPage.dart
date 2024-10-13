@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:paywise/Services/auth_service.dart';
 import 'package:paywise/screens/HomeScreen.dart';
 import 'package:paywise/screens/LoginPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -10,10 +11,11 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final _nameController = TextEditingController(); // Added name controller
+  final _nameController = TextEditingController(); // Name controller
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+  final _auth = AuthService();
 
   @override
   void dispose() {
@@ -73,6 +75,7 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
             ),
             SizedBox(height: screenHeight * 0.02),
+            // Name TextField
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
@@ -84,6 +87,7 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
             ),
             SizedBox(height: screenHeight * 0.03),
+            // Email TextField
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
@@ -95,6 +99,7 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
             ),
             SizedBox(height: screenHeight * 0.03),
+            // Password TextField
             TextField(
               controller: _passwordController,
               obscureText: !_isPasswordVisible,
@@ -120,6 +125,7 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
             ),
             SizedBox(height: screenHeight * 0.03),
+            // Terms and Conditions Checkbox
             Row(
               children: <Widget>[
                 Container(
@@ -164,19 +170,46 @@ class _SignUpPageState extends State<SignUpPage> {
               ],
             ),
             SizedBox(height: screenHeight * 0.03),
+            // Sign-Up Button
             ElevatedButton(
               onPressed: () async {
-                final user = await _authService.createUserWithEmailAndPassword(
-                  _emailController.text,
-                  _passwordController.text,
+                // Use the custom loader for dynamic tasks
+                await CustomLoader.showLoaderForTask(
+                  context: context,
+                  task: () async {
+                    if (_nameController.text.isNotEmpty &&
+                        _emailController.text.isNotEmpty &&
+                        _passwordController.text.isNotEmpty &&
+                        _isChecked) {
+                      try {
+                        final user =
+                            await _authService.createUserWithEmailAndPassword(
+                          _nameController.text,
+                          _emailController.text,
+                          _passwordController.text,
+                        );
+
+                        if (user != null) {
+                          await _saveToSharedPrefs(
+                              user['email']!, user['auth_id']!);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => HomeScreen()),
+                          );
+                        } else {
+                          _showSnackbar(
+                              context, 'Sign-up failed. Please try again.');
+                        }
+                      } catch (e) {
+                        _showSnackbar(context, 'Error: ${e.toString()}');
+                      }
+                    } else {
+                      _showSnackbar(context,
+                          'Please fill in all fields and agree to the terms.');
+                    }
+                  },
                 );
-                if (user != null) {
-                  await _saveToSharedPrefs(user.email ?? "", user.uid);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomeScreen()),
-                  );
-                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color.fromRGBO(127, 61, 255, 1),
@@ -199,17 +232,9 @@ class _SignUpPageState extends State<SignUpPage> {
                   TextStyle(color: Colors.grey, fontSize: screenHeight * 0.02),
             ),
             SizedBox(height: screenHeight * 0.02),
+            // Sign-Up With Google Button
             ElevatedButton.icon(
-              onPressed: () async {
-                final user = await _authService.signInWithGoogle();
-                if (user != null) {
-                  await _saveToSharedPrefs(user.email ?? "", user.uid);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomeScreen()),
-                  );
-                }
-              },
+              onPressed: _handleGoogleSignIn,
               style: ElevatedButton.styleFrom(
                 elevation: 0,
                 backgroundColor: Colors.white,
@@ -230,6 +255,7 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
             ),
             SizedBox(height: screenHeight * 0.01),
+            // Redirect to Login Page
             TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
@@ -258,9 +284,40 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          try {
+            // Call the Google sign-in method, which returns a Map<String, String>?
+            final result = await _auth.signInWithGoogle();
+
+            // Check if result is not null and contains the required user info (like uid)
+            if (result != null && result.containsKey('uid')) {
+              // Optionally store the email or other user information in SharedPreferences
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('uid', result['uid']!);
+
+              // Navigate to the HomeScreen
+            } else {
+              print('Google sign-in failed');
+            }
+          } catch (error) {
+            print("Error during Google Sign-In: $error");
+          }
+        });
+  }
+
   Future<void> _saveToSharedPrefs(String email, String uid) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('email', email);
     await prefs.setString('uid', uid);
+  }
+
+  void _showSnackbar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.red,
+    ));
   }
 }

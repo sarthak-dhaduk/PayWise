@@ -1,10 +1,12 @@
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:paywise/Services/auth_service.dart';
 import 'package:paywise/screens/ForgotPasswordPage.dart';
 import 'package:paywise/screens/HomeScreen.dart';
 import 'package:paywise/screens/SignUpPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -216,14 +218,56 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    try {
-      final User? user = await _auth.signInWithGoogle();
-      if (user != null) {
-        goToHome(context);
-      }
-    } catch (error) {
-      print("Error during Google Sign-In: $error");
-    }
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          try {
+            // Call the Google sign-in method, which returns a Map<String, String>?
+            final result = await _auth.signInWithGoogle();
+
+            // Check if result is not null and contains the required user info (like uid)
+            if (result != null && result.containsKey('uid')) {
+              // Optionally store the email or other user information in SharedPreferences
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('uid', result['uid']!);
+
+              // Navigate to the HomeScreen
+            } else {
+              print('Google sign-in failed');
+            }
+          } catch (error) {
+            print("Error during Google Sign-In: $error");
+          }
+        });
+  }
+
+  Future<void> _login() async {
+    await CustomLoader.showLoaderForTask(
+      context: context,
+      task: () async {
+        try {
+          // Call login method from AuthService
+          final result = await _auth.loginWithEmailAndPassword(
+            _email.text,
+            _password.text,
+          );
+
+          if (result != null) {
+            // Save user data to Shared Preferences
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('email', result['email']!);
+            await prefs.setString('uid', result['auth_id']!);
+
+            // Navigate to HomeScreen
+            goToHome(context);
+          } else {
+            print('Invalid credentials');
+          }
+        } catch (error) {
+          print("Error during login: $error");
+        }
+      },
+    );
   }
 
   void goToSignup(BuildContext context) => Navigator.push(
@@ -235,22 +279,4 @@ class _LoginPageState extends State<LoginPage> {
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
-
-  Future<void> _login() async {
-    final User? user = await _auth.loginUserWithEmailAndPassword(
-      _email.text,
-      _password.text,
-    );
-
-    if (user != null) {
-      // log("User Logged In");
-
-      // Save user data to Shared Preferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('email', _email.text);
-      await prefs.setString('uid', user.uid);
-
-      goToHome(context);
-    }
-  }
 }
