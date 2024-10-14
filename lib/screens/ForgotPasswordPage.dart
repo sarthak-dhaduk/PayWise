@@ -1,8 +1,56 @@
+import 'dart:math';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:paywise/screens/LoginPage.dart';
+import 'package:paywise/Services/email_service.dart';
 import 'package:paywise/screens/VerificationPage.dart';
 
-class ForgotPasswordPage extends StatelessWidget {
+class ForgotPasswordPage extends StatefulWidget {
+  @override
+  _ForgotPasswordPageState createState() => _ForgotPasswordPageState();
+}
+
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  Future<void> _sendOTP() async {
+    String email = _emailController.text.trim();
+
+    // Check if email exists in authentication collection
+    QuerySnapshot snapshot = await _firestore
+        .collection('authentication')
+        .where('email', isEqualTo: email)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      // Generate a 6-digit OTP
+      String otp = (Random().nextInt(900000) + 100000).toString();
+
+      // Save OTP in recovery collection
+      await _firestore.collection('recovery').add({
+        'email': email,
+        'otp': otp,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      // Send OTP to user's email
+      await EmailService.sendOTP(email, otp);
+
+      // Redirect to OTP verification page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerificationPage(email: email),
+        ),
+      );
+    } else {
+      // Show error if email is not registered
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Email not found')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     var screenHeight = MediaQuery.of(context).size.height;
@@ -60,6 +108,7 @@ class ForgotPasswordPage extends StatelessWidget {
                 ),
                 SizedBox(height: screenHeight * 0.05),
                 TextField(
+                  controller: _emailController,
                   decoration: InputDecoration(
                     labelText: "Email",
                     labelStyle: TextStyle(fontSize: screenHeight * 0.022),
@@ -70,11 +119,7 @@ class ForgotPasswordPage extends StatelessWidget {
                 ),
                 SizedBox(height: screenHeight * 0.05),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => VerificationPage()),
-                  );
-                  },
+                  onPressed: _sendOTP,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color.fromRGBO(127, 61, 255, 1),
                     padding:
