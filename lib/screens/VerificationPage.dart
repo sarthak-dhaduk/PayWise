@@ -1,15 +1,27 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import 'package:paywise/screens/ForgotPasswordPage.dart';
+
 import 'package:paywise/screens/ResetPasswordPage.dart';
 
 class VerificationPage extends StatefulWidget {
+
+  final String email;
+
+  VerificationPage({required this.email});
+
   @override
   _VerificationPageState createState() => _VerificationPageState();
 }
 
 class _VerificationPageState extends State<VerificationPage> {
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  
+ String otpMap = '';
+
   final int _pinLength = 6;
   late List<TextEditingController> _controllers;
   late List<FocusNode> _focusNodes;
@@ -55,29 +67,33 @@ class _VerificationPageState extends State<VerificationPage> {
   }
 
   void _onKeyPressed(String value) {
-    if (value == 'backspace') {
-      if (_currentIndex > 0) {
-        setState(() {
-          _controllers[_currentIndex].clear();
-          _currentIndex--;
-          FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
-          _controllers[_currentIndex].clear();
-        });
-      } else if (_currentIndex == 0) {
-        setState(() {
-          _controllers[_currentIndex].clear();
-        });
-      }
-    } else if (_currentIndex < _pinLength) {
+  if (value == 'backspace') {
+    if (_currentIndex > 0) {
       setState(() {
-        _controllers[_currentIndex].text = value;
-        if (_currentIndex < _pinLength - 1) {
-          _currentIndex++;
-        }
+        _controllers[_currentIndex].clear();
+        _currentIndex--;
         FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
+        _controllers[_currentIndex].clear();
+      });
+    } else if (_currentIndex == 0) {
+      setState(() {
+        _controllers[_currentIndex].clear();
       });
     }
+  } else if (_currentIndex < _pinLength) {
+    setState(() {
+      _controllers[_currentIndex].text = value;
+      if (_currentIndex < _pinLength - 1) {
+        _currentIndex++;
+      }
+      FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
+    });
   }
+
+  // Collect the OTP whenever a key is pressed
+  otpMap = _controllers.map((controller) => controller.text).join();
+  print("OTP: $otpMap"); // Optional: for debugging
+}
 
   @override
   void dispose() {
@@ -85,6 +101,32 @@ class _VerificationPageState extends State<VerificationPage> {
     _focusNodes.forEach((node) => node.dispose());
     _timer.cancel();
     super.dispose();
+  }
+
+Future<void> _verifyOTP() async {
+    String otp = otpMap;
+
+    // Check if OTP matches the one in recovery collection
+    QuerySnapshot snapshot = await _firestore
+        .collection('recovery')
+        .where('email', isEqualTo: widget.email)
+        .where('otp', isEqualTo: otp)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      // OTP is valid, redirect to recover password page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResetPasswordPage(email: widget.email),
+        ),
+      );
+    } else {
+      // Show error if OTP is invalid
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid OTP')),
+      );
+    }
   }
 
   @override
@@ -190,12 +232,7 @@ class _VerificationPageState extends State<VerificationPage> {
                   ),
                   SizedBox(height: screenHeight * 0.01),
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (context) => ResetPasswordPage()),
-                      );
-                    },
+                onPressed: _verifyOTP,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color.fromRGBO(127, 61, 255, 1),
                       padding:
