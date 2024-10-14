@@ -4,9 +4,9 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 
 import 'package:paywise/screens/ResetPasswordPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 
 class VerificationPage extends StatefulWidget {
-
   final String email;
 
   VerificationPage({required this.email});
@@ -16,11 +16,9 @@ class VerificationPage extends StatefulWidget {
 }
 
 class _VerificationPageState extends State<VerificationPage> {
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  
- String otpMap = '';
+  String otpMap = '';
 
   final int _pinLength = 6;
   late List<TextEditingController> _controllers;
@@ -67,33 +65,33 @@ class _VerificationPageState extends State<VerificationPage> {
   }
 
   void _onKeyPressed(String value) {
-  if (value == 'backspace') {
-    if (_currentIndex > 0) {
+    if (value == 'backspace') {
+      if (_currentIndex > 0) {
+        setState(() {
+          _controllers[_currentIndex].clear();
+          _currentIndex--;
+          FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
+          _controllers[_currentIndex].clear();
+        });
+      } else if (_currentIndex == 0) {
+        setState(() {
+          _controllers[_currentIndex].clear();
+        });
+      }
+    } else if (_currentIndex < _pinLength) {
       setState(() {
-        _controllers[_currentIndex].clear();
-        _currentIndex--;
+        _controllers[_currentIndex].text = value;
+        if (_currentIndex < _pinLength - 1) {
+          _currentIndex++;
+        }
         FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
-        _controllers[_currentIndex].clear();
-      });
-    } else if (_currentIndex == 0) {
-      setState(() {
-        _controllers[_currentIndex].clear();
       });
     }
-  } else if (_currentIndex < _pinLength) {
-    setState(() {
-      _controllers[_currentIndex].text = value;
-      if (_currentIndex < _pinLength - 1) {
-        _currentIndex++;
-      }
-      FocusScope.of(context).requestFocus(_focusNodes[_currentIndex]);
-    });
-  }
 
-  // Collect the OTP whenever a key is pressed
-  otpMap = _controllers.map((controller) => controller.text).join();
-  print("OTP: $otpMap"); // Optional: for debugging
-}
+    // Collect the OTP whenever a key is pressed
+    otpMap = _controllers.map((controller) => controller.text).join();
+    print("OTP: $otpMap"); // Optional: for debugging
+  }
 
   @override
   void dispose() {
@@ -103,30 +101,34 @@ class _VerificationPageState extends State<VerificationPage> {
     super.dispose();
   }
 
-Future<void> _verifyOTP() async {
-    String otp = otpMap;
+  Future<void> _verifyOTP() async {
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          String otp = otpMap;
 
-    // Check if OTP matches the one in recovery collection
-    QuerySnapshot snapshot = await _firestore
-        .collection('recovery')
-        .where('email', isEqualTo: widget.email)
-        .where('otp', isEqualTo: otp)
-        .get();
+          // Check if OTP matches the one in recovery collection
+          QuerySnapshot snapshot = await _firestore
+              .collection('recovery')
+              .where('email', isEqualTo: widget.email)
+              .where('otp', isEqualTo: otp)
+              .get();
 
-    if (snapshot.docs.isNotEmpty) {
-      // OTP is valid, redirect to recover password page
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ResetPasswordPage(email: widget.email),
-        ),
-      );
-    } else {
-      // Show error if OTP is invalid
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid OTP')),
-      );
-    }
+          if (snapshot.docs.isNotEmpty) {
+            // OTP is valid, redirect to recover password page
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ResetPasswordPage(email: widget.email),
+              ),
+            );
+          } else {
+            // Show error if OTP is invalid
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Invalid OTP')),
+            );
+          }
+        });
   }
 
   @override
@@ -159,7 +161,8 @@ Future<void> _verifyOTP() async {
           children: <Widget>[
             Padding(
               padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.05, vertical: screenHeight * 0.02),
+                  horizontal: screenWidth * 0.05,
+                  vertical: screenHeight * 0.02),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -232,7 +235,7 @@ Future<void> _verifyOTP() async {
                   ),
                   SizedBox(height: screenHeight * 0.01),
                   ElevatedButton(
-                onPressed: _verifyOTP,
+                    onPressed: _verifyOTP,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color.fromRGBO(127, 61, 255, 1),
                       padding:
@@ -251,7 +254,8 @@ Future<void> _verifyOTP() async {
               ),
             ),
             SizedBox(height: screenHeight * 0.01),
-            _buildCustomKeyboard(screenHeight, screenWidth), // Positioned at the bottom
+            _buildCustomKeyboard(
+                screenHeight, screenWidth), // Positioned at the bottom
           ],
         ),
       ),
@@ -323,7 +327,8 @@ Future<void> _verifyOTP() async {
             children: [
               _buildKeyboardButton('0', screenHeight),
               SizedBox(width: screenWidth * 0.15),
-              _buildKeyboardButton('backspace', screenHeight, isBackspace: true),
+              _buildKeyboardButton('backspace', screenHeight,
+                  isBackspace: true),
             ],
           ),
         ],

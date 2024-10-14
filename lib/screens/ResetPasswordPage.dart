@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:paywise/screens/ForgotPasswordPage.dart';
 import 'package:paywise/screens/HomeScreen.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ResetPasswordPage extends StatefulWidget {
@@ -23,59 +24,65 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   bool _isConfirmPasswordVisible = false;
 
   Future<void> _resetPassword() async {
-  String newPassword = _passwordController.text.trim();
-  String confirmPassword = _confirmPasswordController.text.trim();
+    String newPassword = _passwordController.text.trim();
+    String confirmPassword = _confirmPasswordController.text.trim();
+    
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          if (newPassword.isNotEmpty &&
+              confirmPassword.isNotEmpty &&
+              newPassword == confirmPassword) {
+            // Update password in authentication collection
+            QuerySnapshot snapshot = await _firestore
+                .collection('authentication')
+                .where('email', isEqualTo: widget.email)
+                .get();
 
-  if (newPassword.isNotEmpty && confirmPassword.isNotEmpty && newPassword == confirmPassword) {
-    // Update password in authentication collection
-    QuerySnapshot snapshot = await _firestore
-        .collection('authentication')
-        .where('email', isEqualTo: widget.email)
-        .get();
+            if (snapshot.docs.isNotEmpty) {
+              String authId = snapshot.docs.first.id;
 
-    if (snapshot.docs.isNotEmpty) {
-      String authId = snapshot.docs.first.id;
+              await _firestore
+                  .collection('authentication')
+                  .doc(authId)
+                  .update({'password': newPassword});
 
-      await _firestore
-          .collection('authentication')
-          .doc(authId)
-          .update({'password': newPassword});
+              // Fetch updated user details and cast to Map<String, dynamic>
+              final userData =
+                  snapshot.docs.first.data() as Map<String, dynamic>;
 
-      // Fetch updated user details and cast to Map<String, dynamic>
-      final userData = snapshot.docs.first.data() as Map<String, dynamic>;
+              // Ensure userData is not null before accessing its fields
+              if (userData != null) {
+                // Store updated details in SharedPreferences
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                await prefs.setString('email', userData['email'] ?? '');
+                await prefs.setString('auth_id', authId);
 
-      // Ensure userData is not null before accessing its fields
-      if (userData != null) {
-        // Store updated details in SharedPreferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('email', userData['email'] ?? '');
-        await prefs.setString('auth_id', authId);
-
-        // Redirect to login page or show success message
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => HomeScreen()),
-        );
-      } else {
-        // Handle case where user data is null
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error fetching user details')),
-        );
-      }
-    } else {
-      // Show error if something goes wrong
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating password')),
-      );
-    }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text('Inappropriate password or password is not matched!')),
-    );
+                // Redirect to login page or show success message
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => HomeScreen()),
+                );
+              } else {
+                // Handle case where user data is null
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error fetching user details')),
+                );
+              }
+            } else {
+              // Show error if something goes wrong
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error updating password')),
+              );
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(
+                      'Inappropriate password or password is not matched!')),
+            );
+          }
+        });
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
