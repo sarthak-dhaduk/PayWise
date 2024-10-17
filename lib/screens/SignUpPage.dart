@@ -297,6 +297,7 @@ class _SignUpPageState extends State<SignUpPage> {
               // Optionally store the email or other user information in SharedPreferences
               final prefs = await SharedPreferences.getInstance();
               await prefs.setString('uid', result['uid']!);
+              await prefs.setString('email', result['email']!);
 
               // Navigate to the HomeScreen
             } else {

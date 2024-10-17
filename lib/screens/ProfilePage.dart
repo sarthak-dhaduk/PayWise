@@ -10,7 +10,6 @@ import 'package:paywise/screens/SettingsPage.dart';
 import 'package:paywise/widgets/CircularMenuWidget.dart';
 import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
 import 'package:paywise/widgets/custom_loader.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatelessWidget {
   final AuthService auth = AuthService();
