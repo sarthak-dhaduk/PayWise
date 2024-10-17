@@ -1,8 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:paywise/Services/AccountController.dart';
 import 'package:paywise/screens/AccountPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 
 class AddAccountPage extends StatefulWidget {
   @override
@@ -11,7 +15,9 @@ class AddAccountPage extends StatefulWidget {
 
 class _AddAccountPageState extends State<AddAccountPage>
     with SingleTickerProviderStateMixin {
-  String? selectedWallet;
+  final TextEditingController _balanceController = TextEditingController();
+  final TextEditingController _accountNameController = TextEditingController();
+  final AccountController _accountController = AccountController();
 
   // Define account types
   List<String> _accountTypes = ['Wallet', 'UPI Account', 'Bank Account'];
@@ -294,6 +300,62 @@ class _AddAccountPageState extends State<AddAccountPage>
   String? _selectedUPIAccount;
   String? _selectedBankAccount;
 
+  // Example of form submission when the continue button is clicked
+  void _onContinuePressed(BuildContext context) async {
+  // Perform validation
+  if (_balanceController.text.isEmpty || double.tryParse(_balanceController.text) == null) {
+    // Show error if balance is not valid
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please enter a valid balance')),
+    );
+    return; // Stop execution if validation fails
+  }
+
+  if (_selectedAccountType == null) {
+    // Show error if account type is not selected
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please select an account type')),
+    );
+    return; // Stop execution if validation fails
+  }
+
+  // If validation passes, execute the task
+  await CustomLoader.showLoaderForTask(
+    context: context,
+    task: () async {
+      String selectedAccountType = _selectedAccountType ?? 'Wallet';
+      String? accountName = _accountNameController.text.isNotEmpty
+          ? _accountNameController.text
+          : null; // Account name is optional
+      double balance = double.tryParse(_balanceController.text) ?? 0.0;
+
+      try {
+        // Insert the account into Firebase
+        await _accountController.addNewAccount(
+          accountType: selectedAccountType,
+          accountName: accountName,
+          balance: balance,
+          selectedUPIAccount: _selectedUPIAccount,
+          selectedBankAccount: _selectedBankAccount,
+        );
+
+        // Navigate to AccountPage after successful insertion
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AccountPage()),
+        );
+      } catch (e) {
+        // Handle error
+        print("Error adding account: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding account. Please try again.')),
+        );
+      }
+    },
+  );
+}
+
+
 // This controller is used for search functionality
   final TextEditingController _searchController = TextEditingController();
 
@@ -384,6 +446,7 @@ class _AddAccountPageState extends State<AddAccountPage>
                     ),
                   ),
                   TextField(
+                    controller: _balanceController,
                     cursorColor: Colors.white,
                     style: TextStyle(
                       color: Colors.white,
@@ -457,6 +520,7 @@ class _AddAccountPageState extends State<AddAccountPage>
                               ),
                               SizedBox(height: 16),
                               TextField(
+                                controller: _accountNameController,
                                 decoration: InputDecoration(
                                   labelText: "Name",
                                   labelStyle: TextStyle(fontSize: 16),
@@ -542,6 +606,7 @@ class _AddAccountPageState extends State<AddAccountPage>
                                   onChanged: (String? newValue) {
                                     setState(() {
                                       _selectedUPIAccount = newValue;
+                                      print(_selectedUPIAccount);
                                     });
                                   },
                                   iconStyleData: const IconStyleData(
@@ -699,10 +764,8 @@ class _AddAccountPageState extends State<AddAccountPage>
                                 height: 56,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                          builder: (context) => AccountPage()),
-                                    );
+                                    _onContinuePressed(
+                                        context); // Pass the context here
                                   },
                                   child: Text('Continue',
                                       style: TextStyle(

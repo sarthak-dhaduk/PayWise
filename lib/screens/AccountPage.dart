@@ -1,6 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:paywise/screens/AccountDetails.dart';
 import 'package:paywise/screens/AddAccountPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -10,32 +13,65 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
-  final List<Map<String, dynamic>> menuItems = [
-    {
-      'acImage': 'assets/images/wallet.png',
-      'text': 'Wallet',
-      'balance': '400',
-      'color': Color.fromRGBO(127, 61, 255, 0.1), // Light purple
-    },
-    {
-      'acImage': 'assets/images/gpay.png',
-      'text': 'Gpay',
-      'balance': '3000',
-      'color': Color.fromRGBO(127, 61, 255, 0.1), // Lighter purple
-    },
-    {
-      'acImage': 'assets/images/phonepay.png',
-      'text': 'PhonePay',
-      'balance': '5000',
-      'color': Color.fromRGBO(127, 61, 255, 0.1), // More vibrant purple
-    },
-    {
-      'acImage': 'assets/images/Bank.png',
-      'text': 'Paypal',
-      'balance': '1000',
-      'color': Color.fromRGBO(127, 61, 255, 0.1), // Light red
+  List<Map<String, dynamic>> userAccounts = [];
+  double totalBalance = 0.0; // To store the total balance
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserAccounts();
+  }
+
+  String _truncateText(String text) {
+    List<String> words = text.split(' ');
+    if (words.length > 3) {
+      return words.sublist(0, 2).join(' ') + '...';
+    } else {
+      return text;
     }
-  ];
+  }
+
+  Future<void> _fetchUserAccounts() async {
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          final String? email = prefs.getString('email');
+
+          if (email != null) {
+            try {
+              final QuerySnapshot snapshot = await FirebaseFirestore.instance
+                  .collection('accounts')
+                  .where('email', isEqualTo: email)
+                  .get();
+
+              double calculatedTotalBalance = 0.0;
+
+              final List<Map<String, dynamic>> fetchedAccounts =
+                  snapshot.docs.map((doc) {
+                // Parse the balance and add it to the running total
+                double accountBalance =
+                    double.tryParse(doc['balance'].toString()) ?? 0.0;
+                calculatedTotalBalance += accountBalance;
+
+                return {
+                  'acImage': doc['account_image'],
+                  'text': doc['account_name'],
+                  'balance': doc['balance'].toString(),
+                  'color': Color.fromRGBO(127, 61, 255, 0.1), // Custom color
+                };
+              }).toList();
+
+              setState(() {
+                userAccounts = fetchedAccounts;
+                totalBalance = calculatedTotalBalance; // Set the total balance
+              });
+            } catch (e) {
+              print("Error fetching user accounts: $e");
+            }
+          }
+        });
+  }
 
   void _goToDetailPage(Map<String, dynamic> menuItem) {
     Navigator.push(
@@ -72,9 +108,9 @@ class _AccountPageState extends State<AccountPage> {
             child: Positioned(
               top: 0,
               child: Opacity(
-                opacity: 1, // Adjust as per your need
+                opacity: 1,
                 child: Image.asset(
-                  'assets/images/background.png', // Replace with your background image path
+                  'assets/images/background.png',
                   fit: BoxFit.fitWidth,
                 ),
               ),
@@ -84,9 +120,7 @@ class _AccountPageState extends State<AccountPage> {
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(
-                height: 50,
-              ),
+              SizedBox(height: 50),
               Text(
                 'Account Balance',
                 style: TextStyle(
@@ -95,22 +129,21 @@ class _AccountPageState extends State<AccountPage> {
                 ),
               ),
               SizedBox(height: 10),
+              // Display the calculated total balance
               Text(
-                '₹9400',
+                '₹${totalBalance.toStringAsFixed(2)}', // Displaying balance with 2 decimal places
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
               ),
-              SizedBox(
-                height: 100,
-              ),
+              SizedBox(height: 100),
               Expanded(
                 child: ListView.builder(
-                  itemCount: menuItems.length,
+                  itemCount: userAccounts.length,
                   itemBuilder: (context, index) {
-                    final item = menuItems[index];
+                    final item = userAccounts[index];
                     return GestureDetector(
                       onTap: () => _goToDetailPage(item),
                       child: Container(
@@ -123,7 +156,7 @@ class _AccountPageState extends State<AccountPage> {
                               ? BorderRadius.only(
                                   topLeft: Radius.circular(15),
                                   topRight: Radius.circular(15))
-                              : index == menuItems.length - 1
+                              : index == userAccounts.length - 1
                                   ? BorderRadius.only(
                                       bottomLeft: Radius.circular(15),
                                       bottomRight: Radius.circular(15))
@@ -134,14 +167,14 @@ class _AccountPageState extends State<AccountPage> {
                             // Icon with specific color
                             Container(
                               decoration: BoxDecoration(
-                                color: menuItems[index]['color'],
+                                color: userAccounts[index]['color'],
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Center(
                                 child: Padding(
                                   padding: const EdgeInsets.all(10.0),
                                   child: Image.asset(
-                                    menuItems[index]['acImage'],
+                                    userAccounts[index]['acImage'],
                                     height: 20,
                                     width: 20,
                                   ),
@@ -151,17 +184,20 @@ class _AccountPageState extends State<AccountPage> {
                             SizedBox(width: 20),
                             // Text for the menu item
                             Text(
-                              menuItems[index]['text'],
+                              _truncateText(userAccounts[index]
+                                  ['text']), // Use the truncate function here
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            Spacer(), // Adds spacing between the text and balance, pushing balance to the right
-                            // Text for the balance, aligned to the right
+
+                            Spacer(),
+                            // Balance
                             Text(
-                              menuItems[index]['balance'],
+                              '₹${userAccounts[index]['balance']}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -189,7 +225,6 @@ class _AccountPageState extends State<AccountPage> {
                       ),
                     ),
                     onPressed: () {
-                      // Add your onPressed functionality
                       Navigator.push(
                         context,
                         MaterialPageRoute(
