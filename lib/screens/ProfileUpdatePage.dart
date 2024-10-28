@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:paywise/screens/ProfilePage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class ProfileUpdatePage extends StatefulWidget {
@@ -12,8 +15,93 @@ class ProfileUpdatePage extends StatefulWidget {
 class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
   bool _isOldPasswordVisible = false;
   bool _isNewPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-  XFile? _imageFile;
+  File? _imageFile;
+  String? _name;
+  String? _email;
+  String? _password;
+  String? _profileImgUrl;
+
+  final picker = ImagePicker();
+  final FirebaseStorage storage = FirebaseStorage.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserDetails();
+  }
+
+  Future<void> _fetchUserDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? email = prefs.getString('email');
+
+    if (email != null) {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('authentication')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final userDoc = querySnapshot.docs.first;
+        setState(() {
+          _name = userDoc.get('name') ?? '';
+          _email = email;
+          _password = userDoc.get('password') ?? '';
+          _profileImgUrl = userDoc.data().containsKey('profile_img')
+              ? userDoc.get('profile_img')
+              : 'https://raw.githubusercontent.com/sarthak-dhaduk/PayWise/refs/heads/master/assets/images/av1.png';
+        });
+      } else {
+        print('User document does not exist');
+      }
+    }
+  }
+
+  Future<void> _updateUserDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? email = prefs.getString('email');
+
+    if (email != null) {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('authentication')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final docId = querySnapshot.docs.first.id;
+        await FirebaseFirestore.instance
+            .collection('authentication')
+            .doc(docId)
+            .update({
+          'name': _name,
+          'password': _password,
+          'profile_img': _profileImgUrl,
+        });
+      } else {
+        print('User document not found');
+      }
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    if (_imageFile != null) {
+      try {
+        String fileName = 'images/${DateTime.now().millisecondsSinceEpoch}.png';
+        await storage.ref(fileName).putFile(_imageFile!);
+        String downloadURL = await storage.ref(fileName).getDownloadURL();
+
+        setState(() {
+          _profileImgUrl = downloadURL;
+        });
+
+        await _updateUserDetails(); // Save new image URL to Firestore
+        print("Image uploaded. Download URL: $downloadURL");
+      } catch (e) {
+        print("Error uploading image: $e");
+      }
+    } else {
+      print("No image selected for upload.");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,13 +110,11 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // No AppBar background color here; it will be included in the gradient
       body: Stack(
         children: [
-          // Linear gradient background starting from the top of the screen
           Container(
             width: double.infinity,
-            height: screenHeight * 0.3, // Extend the gradient a bit further
+            height: screenHeight * 0.3,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [Colors.orange[100]!, Colors.white],
@@ -37,16 +123,13 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
               ),
             ),
           ),
-          // The actual content (including app bar and body)
           SingleChildScrollView(
             child: Column(
               children: [
-                // Custom AppBar with transparent background
                 Container(
                   padding: EdgeInsets.only(top: 0),
                   child: AppBar(
-                    backgroundColor: Colors
-                        .transparent, // Transparent to merge with gradient
+                    backgroundColor: Colors.transparent,
                     elevation: 0,
                     leading: IconButton(
                       icon: Icon(Icons.arrow_back_ios, color: Colors.black),
@@ -62,7 +145,6 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                     ),
                   ),
                 ),
-                // Profile picture section
                 Container(
                   height: screenHeight * 0.2,
                   child: Column(
@@ -75,8 +157,8 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                                 children: [
                                   CircleAvatar(
                                     radius: 50,
-                                    backgroundImage:
-                                        AssetImage('assets/images/av1.png'),
+                                    backgroundImage: NetworkImage(_profileImgUrl ??
+                                        'https://raw.githubusercontent.com/sarthak-dhaduk/PayWise/refs/heads/master/assets/images/av1.png'),
                                     backgroundColor: Colors.white,
                                   ),
                                   Positioned(
@@ -103,7 +185,6 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Details section (Name, Email)
                       TextField(
                         decoration: InputDecoration(
                           labelText: "Name",
@@ -111,18 +192,23 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                         ),
+                        onChanged: (value) {
+                          _name = value;
+                        },
+                        controller: TextEditingController(text: _name),
                       ),
                       SizedBox(height: screenHeight * 0.02),
                       TextField(
+                        readOnly: true, // Make email read-only
                         decoration: InputDecoration(
                           labelText: "Email",
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                         ),
+                        controller: TextEditingController(text: _email),
                       ),
                       SizedBox(height: screenHeight * 0.04),
-                      // Change Password section
                       Text(
                         "Change Password",
                         style: TextStyle(
@@ -149,8 +235,10 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                             },
                           ),
                         ),
+                        controller: TextEditingController(text: _password),
                       ),
                       SizedBox(height: screenHeight * 0.02),
+                      // New Password Field
                       TextField(
                         obscureText: !_isNewPasswordVisible,
                         decoration: InputDecoration(
@@ -171,34 +259,14 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                             },
                           ),
                         ),
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      TextField(
-                        obscureText: !_isConfirmPasswordVisible,
-                        decoration: InputDecoration(
-                          labelText: "Confirm Password",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isConfirmPasswordVisible
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isConfirmPasswordVisible =
-                                    !_isConfirmPasswordVisible;
-                              });
-                            },
-                          ),
-                        ),
+                        onChanged: (value) {
+                          _password = value;
+                        },
                       ),
                       SizedBox(height: screenHeight * 0.04),
-                      // Continue button
                       ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          await _updateUserDetails();
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
                                 builder: (context) => ProfilePage()),
@@ -254,22 +322,19 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                         ),
                         onPressed: () async {
                           Navigator.pop(context);
-                          final pickedFile = await ImagePicker()
-                              .pickImage(source: ImageSource.camera);
-                          setState(() {
-                            _imageFile = pickedFile;
-                          });
+                          final pickedFile = await picker.pickImage(
+                            source: ImageSource.camera,
+                            imageQuality: 80,
+                          );
+                          if (pickedFile != null) {
+                            setState(() {
+                              _imageFile = File(pickedFile.path);
+                            });
+                            await _uploadImage();
+                          }
                         },
                       ),
-                      Text(
-                        'Camera',
-                        style: TextStyle(
-                            color: Color.fromRGBO(127, 61, 255, 1),
-                            fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(
-                        height: 5,
-                      ),
+                      Text('Camera'),
                     ],
                   ),
                 ),
@@ -285,27 +350,24 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                     children: [
                       IconButton(
                         icon: Icon(
-                          Icons.image_rounded,
+                          Icons.image,
                           color: Color.fromRGBO(127, 61, 255, 1),
                         ),
                         onPressed: () async {
                           Navigator.pop(context);
-                          final pickedFile = await ImagePicker()
-                              .pickImage(source: ImageSource.gallery);
-                          setState(() {
-                            _imageFile = pickedFile;
-                          });
+                          final pickedFile = await picker.pickImage(
+                            source: ImageSource.gallery,
+                            imageQuality: 80,
+                          );
+                          if (pickedFile != null) {
+                            setState(() {
+                              _imageFile = File(pickedFile.path);
+                            });
+                            await _uploadImage();
+                          }
                         },
                       ),
-                      Text(
-                        'Images',
-                        style: TextStyle(
-                            color: Color.fromRGBO(127, 61, 255, 1),
-                            fontWeight: FontWeight.w500),
-                      ),
-                      SizedBox(
-                        height: 5,
-                      ),
+                      Text('Gallery'),
                     ],
                   ),
                 ),
@@ -336,7 +398,20 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                       ),
                     ),
                   )
-                : SizedBox.shrink(),
+                : Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(100),
+                      image: DecorationImage(
+                        image: NetworkImage(
+                          _profileImgUrl ??
+                              'https://raw.githubusercontent.com/sarthak-dhaduk/PayWise/refs/heads/master/assets/images/av1.png',
+                        ),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
           ],
         ),
         // Close button to remove attachments
@@ -344,8 +419,10 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
           right: 0,
           top: 0,
           child: IconButton(
-            icon: Icon(Icons.close,
-                color: const Color.fromARGB(255, 255, 61, 61)),
+            icon: Icon(
+              Icons.close,
+              color: const Color.fromARGB(255, 255, 61, 61),
+            ),
             onPressed: () {
               setState(() {
                 _imageFile = null;

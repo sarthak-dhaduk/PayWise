@@ -44,7 +44,7 @@ class ProfilePage extends StatelessWidget {
   ];
 
   void _logout() async {
-    await auth.signout();
+    await auth.signOut();
   }
 
   @override
