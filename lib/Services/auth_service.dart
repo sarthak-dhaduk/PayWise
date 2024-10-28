@@ -11,6 +11,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String collectionName = 'authentication';
+  final GoogleSignIn googleSignIn = GoogleSignIn();
+
 
   // Create user with email and password
   Future<Map<String, String>?> createUserWithEmailAndPassword(
@@ -67,10 +69,15 @@ class AuthService {
   }
 
   // Google Sign-in
-  Future<Map<String, String>?> signInWithGoogle() async {
+Future<Map<String, String>?> signInWithGoogle() async {
   try {
+    // Check and sign out any existing Google session
+    if (await googleSignIn.isSignedIn()) {
+      await googleSignIn.signOut();
+    }
+
     // Perform the Google sign-in
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
       return null; // User aborted sign-in
     }
@@ -101,6 +108,7 @@ class AuthService {
     final uid = user.uid;
     final email = user.email ?? 'No email';
     final displayName = user.displayName ?? 'No name';
+    final profileImageUrl = user.photoURL ?? 'https://raw.githubusercontent.com/sarthak-dhaduk/PayWise/refs/heads/master/assets/images/av1.png';
 
     // Fetch user data from Firestore by email
     final firestore = FirebaseFirestore.instance;
@@ -137,6 +145,13 @@ class AuthService {
           }
         });
       }
+
+      // Update profile_img field if not already present
+      if (userDoc['profile_img'] == null) {
+        await userDoc.reference.update({
+          'profile_img': profileImageUrl,
+        });
+      }
     } else {
       // If user doesn't exist in Firestore, create a new entry
       await firestore.collection('authentication').doc(uid).set({
@@ -144,6 +159,7 @@ class AuthService {
         'email': email,
         'name': displayName,
         'password': null, // Password initially set to null
+        'profile_img': profileImageUrl, // Store profile image URL
       });
 
       // Redirect to SetPassword screen
@@ -170,22 +186,34 @@ class AuthService {
 }
 
 
+
+
+
   // Sign out
-  Future<void> signout() async {
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut();
+  Future<void> signOut() async {
+  try {
+    // Disconnect and sign out of Google to fully clear session data
+    await googleSignIn.disconnect().catchError((error) {
+      log("Error disconnecting GoogleSignIn: $error");
+    });
+    await googleSignIn.signOut();
 
-      // Clear shared preferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('email');
-      await prefs.remove('auth_id');
+    // Sign out from Firebase as well
+    await FirebaseAuth.instance.signOut();
 
-      log("Signed out successfully.");
-    } catch (e) {
-      log("Error signing out: $e");
-    }
+    // Clear shared preferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('email');
+    await prefs.remove('auth_id');
+
+    log("Signed out successfully.");
+  } catch (e) {
+    log("Error signing out: $e");
   }
+}
+
+
+
 
   // Get current user details
   Future<Map<String, dynamic>?> getCurrentUser() async {
