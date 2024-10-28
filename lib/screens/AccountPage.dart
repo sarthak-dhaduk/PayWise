@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:paywise/screens/AccountDetails.dart';
 import 'package:paywise/screens/AddAccountPage.dart';
-import 'package:paywise/screens/ProfilePage.dart';
 import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -92,9 +91,7 @@ class _AccountPageState extends State<AccountPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => ProfilePage()),
-            );
+            Navigator.pop(context);
           },
         ),
         centerTitle: true,
