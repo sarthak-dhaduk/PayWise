@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -10,35 +11,58 @@ import 'package:paywise/screens/SettingsPage.dart';
 import 'package:paywise/widgets/CircularMenuWidget.dart';
 import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
 import 'package:paywise/widgets/custom_loader.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatelessWidget {
   final AuthService auth = AuthService();
   int _activeIndex = 3;
   final Color primaryColor = Color.fromRGBO(127, 61, 255, 1);
 
+  Future<Map<String, String?>> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? email = prefs.getString('email');
+
+    if (email != null) {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('authentication')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        return {
+          'name': doc['name'],
+          'profile_img': doc['profile_img'],
+        };
+      }
+    }
+    return {'name': null, 'profile_img': null};
+  }
+
   final List<Map<String, dynamic>> menuItems = [
     {
       'svgs': 'assets/icons/Wallet.svg',
       'text': 'Account',
-      'color': Color.fromRGBO(127, 61, 255, 0.1), // Light purple
+      'color': Color.fromRGBO(127, 61, 255, 0.1),
       'root': AccountPage(),
     },
     {
       'svgs': 'assets/icons/settings.svg',
       'text': 'Settings',
-      'color': Color.fromRGBO(127, 61, 255, 0.1), // Lighter purple
+      'color': Color.fromRGBO(127, 61, 255, 0.1),
       'root': SettingsPage(),
     },
     {
       'svgs': 'assets/icons/upload.svg',
       'text': 'Upgrade',
-      'color': Color.fromRGBO(127, 61, 255, 0.1), // More vibrant purple
+      'color': Color.fromRGBO(127, 61, 255, 0.1),
       'root': PricingDetailsPage(),
     },
     {
       'svgs': 'assets/icons/logout.svg',
       'text': 'Logout',
-      'color': Color.fromRGBO(255, 61, 61, 0.1), // Light red
+      'color': Color.fromRGBO(255, 61, 61, 0.1),
       'root': LoginPage(),
     }
   ];
@@ -52,16 +76,12 @@ class ProfilePage extends StatelessWidget {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
         overlays: [SystemUiOverlay.top]);
 
-    // Set the status bar color and icon/text brightness
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor:
-          Color.fromARGB(0, 255, 255, 255), // Semi-transparent black
-      statusBarIconBrightness: Brightness.dark, // Icon color to white
-      statusBarBrightness: Brightness.dark, // Status bar text color to black
-      systemNavigationBarColor:
-          Colors.transparent, // Transparent navigation bar
-      systemNavigationBarIconBrightness:
-          Brightness.light, // Navigation icons white
+      statusBarColor: Color.fromARGB(0, 255, 255, 255),
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
     ));
     return Scaffold(
       backgroundColor: Color.fromRGBO(246, 246, 246, 1),
@@ -73,25 +93,41 @@ class ProfilePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Profile Picture with purple border
-                Container(
-                  height: 80,
-                  width: 80,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(80),
-                      color: Colors.white,
-                      border: Border.all(
-                        color: Color.fromRGBO(127, 61, 255, 1),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(1.0),
-                      child: CircleAvatar(
+                FutureBuilder<Map<String, String?>>(
+                  future: _loadUserData(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return CircularProgressIndicator();
+                    } else if (snapshot.hasData) {
+                      final userData = snapshot.data!;
+                      return Container(
+                        height: 80,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(80),
+                          color: Colors.white,
+                          border: Border.all(
+                            color: Color.fromRGBO(127, 61, 255, 1),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(1.0),
+                          child: CircleAvatar(
+  backgroundImage: userData['profile_img'] != null
+      ? NetworkImage(userData['profile_img']!)
+      : AssetImage('assets/images/av1.png') as ImageProvider,
+  onBackgroundImageError: (exception, stackTrace) {
+    debugPrint('Error loading profile image: $exception');
+  },
+),
+                        ),
+                      );
+                    } else {
+                      return CircleAvatar(
                         backgroundImage: AssetImage('assets/images/av1.png'),
-                      ),
-                    ),
-                  ),
+                      );
+                    }
+                  },
                 ),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -104,20 +140,44 @@ class ProfilePage extends StatelessWidget {
                         color: Colors.grey,
                       ),
                     ),
-                    Text(
-                      "Sarthak Dhaduk",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+                    FutureBuilder<Map<String, String?>>(
+                      future: _loadUserData(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Text(
+                            "Loading...",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          );
+                        } else if (snapshot.hasData &&
+                            snapshot.data!['name'] != null) {
+                          return Text(
+                            snapshot.data!['name']!,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          );
+                        } else {
+                          return Text(
+                            "Name not found",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
-                // Username
                 GestureDetector(
                   onTap: () {
-                    // Navigate to profile update page
                     Navigator.of(context).push(
                       MaterialPageRoute(
                           builder: (context) => ProfileUpdatePage()),
@@ -126,23 +186,12 @@ class ProfilePage extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.topRight,
                     child: IconButton(
-                      icon: GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (context) => ProfileUpdatePage()),
-                          );
-                        },
-                        child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(0, 62, 62, 62),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: EdgeInsets.all(5),
-                            child: SvgPicture.asset('assets/icons/edit.svg')),
-                      ),
+                      icon: SvgPicture.asset('assets/icons/edit.svg'),
                       onPressed: () {
-                        // Edit profile action
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (context) => ProfileUpdatePage()),
+                        );
                       },
                     ),
                   ),
@@ -151,7 +200,6 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           SizedBox(height: 30),
-          // Menu Items with ListView.builder
           Expanded(
             child: ListView.builder(
               itemCount: menuItems.length,
@@ -161,9 +209,8 @@ class ProfilePage extends StatelessWidget {
                     await CustomLoader.showLoaderForTask(
                         context: context,
                         task: () async {
-                          //Code
                           if (menuItems[index]['text'] == 'Logout') {
-                            _logout(); // Correctly log out
+                            _logout();
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
@@ -195,7 +242,6 @@ class ProfilePage extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        // Icon with specific color
                         Container(
                           decoration: BoxDecoration(
                             color: menuItems[index]['color'],
@@ -209,7 +255,6 @@ class ProfilePage extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 20),
-                        // Text for the menu item
                         Text(
                           menuItems[index]['text'],
                           style: TextStyle(
