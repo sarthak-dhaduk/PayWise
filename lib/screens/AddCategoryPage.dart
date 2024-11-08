@@ -1,10 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:paywise/screens/CategoriesPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class IconSearchMenu extends StatefulWidget {
-  final Function(IconData) onIconSelected;
+  final Function(IconData, String) onIconSelected;
   final Color iconColor;
 
   const IconSearchMenu(
@@ -2134,7 +2136,7 @@ class _IconSearchMenuState extends State<IconSearchMenu> {
                 final iconData = filteredIcons[index].value;
                 return GestureDetector(
                   onTap: () {
-                    widget.onIconSelected(iconData);
+                    widget.onIconSelected(iconData, iconName);
                     Navigator.pop(context); // Close the menu after selection
                   },
                   child: Padding(
@@ -2194,6 +2196,11 @@ class _AddCategoryPageState extends State<AddCategoryPage>
 
   late AnimationController _controller;
   late Animation<double> _animation;
+  String selectedIconName ="";
+
+  IconData? selectedIcon;
+  Color selectedIconColor = Colors.blue;
+  TextEditingController categoryNameController = TextEditingController();
 
   @override
   void initState() {
@@ -2213,6 +2220,34 @@ class _AddCategoryPageState extends State<AddCategoryPage>
     super.dispose();
   }
 
+ void onContinuePressed() async {
+  // Validate input
+  if (selectedIcon != null && categoryNameController.text.isNotEmpty) {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? email = prefs.getString('email');
+    
+    // Create category data with the icon name
+    final categoryData = {
+      'iconName': selectedIconName, // Save the selected icon name here
+      'iconColor': _colorToHex(selectedIconColor), // Store color as a hex string
+      'name': categoryNameController.text,
+      'email': email,
+    };
+
+    // Store in Firestore
+    await FirebaseFirestore.instance.collection('categories').add(categoryData);
+
+    // Optionally, navigate back or show a success message
+    Navigator.pop(context);
+  } else {
+    // Show an error message if validation fails
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please select an icon and enter a category name.')),
+    );
+  }
+}
+
+
   void onVerticalDragUpdate(DragUpdateDetails details) {
     setState(() {
       // Increase sensitivity to make scrolling faster
@@ -2221,6 +2256,10 @@ class _AddCategoryPageState extends State<AddCategoryPage>
       if (bottomContainerHeight > maxHeight) bottomContainerHeight = maxHeight;
       if (bottomContainerHeight < minHeight) bottomContainerHeight = minHeight;
     });
+  }
+
+  String _colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).substring(2, 8)}';
   }
 
   void onVerticalDragEnd(DragEndDetails details) {
@@ -2238,11 +2277,10 @@ class _AddCategoryPageState extends State<AddCategoryPage>
     _controller.animateWith(simulation);
   }
 
-  IconData? selectedIcon; // Holds the selected icon
+  // Holds the selected icon
   Color pickerColor =
       Color.fromRGBO(126, 61, 255, 1); // Default color for the picker
-  Color selectedIconColor = Color.fromRGBO(
-      126, 61, 255, 1); // Color applied to selected icon and menu
+  // Color applied to selected icon and menu
 
   // Function to show the color picker dialog
   void _showColorPicker() {
@@ -2289,6 +2327,23 @@ class _AddCategoryPageState extends State<AddCategoryPage>
     );
   }
 
+  void _openIconSearchMenu() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return IconSearchMenu(
+          onIconSelected: (iconData, iconName) {
+            setState(() {
+              selectedIcon = iconData;
+              selectedIconName = iconName; // Save the selected icon name
+            });
+          },
+          iconColor: selectedIconColor,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2317,7 +2372,7 @@ class _AddCategoryPageState extends State<AddCategoryPage>
                 children: [
                   SizedBox(height: 50),
                   Text(
-                    'How your category look like?',
+                    'How your category looks like?',
                     style: TextStyle(
                       color: Color.fromRGBO(255, 255, 255, 0.64),
                       fontSize: 18,
@@ -2330,20 +2385,7 @@ class _AddCategoryPageState extends State<AddCategoryPage>
                         flex: 2,
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => IconSearchMenu(
-                                  onIconSelected: (iconData) {
-                                    setState(() {
-                                      selectedIcon = iconData;
-                                    });
-                                  },
-                                  iconColor:
-                                      selectedIconColor, // Pass selected icon color to menu
-                                ),
-                              ),
-                            );
+                            _openIconSearchMenu(); // Open icon selection menu
                           },
                           child: Container(
                             decoration: BoxDecoration(
@@ -2357,7 +2399,7 @@ class _AddCategoryPageState extends State<AddCategoryPage>
                                 Icon(
                                   selectedIcon ?? Icons.category_rounded,
                                   color:
-                                      selectedIconColor, // Apply the selected icon color
+                                      selectedIconColor, // Apply selected icon color
                                 ),
                                 SizedBox(width: 10),
                                 Text(
@@ -2454,6 +2496,7 @@ class _AddCategoryPageState extends State<AddCategoryPage>
                               ),
                               SizedBox(height: 16),
                               TextField(
+                                controller: categoryNameController,
                                 decoration: InputDecoration(
                                   labelText: "Category Name",
                                   labelStyle: TextStyle(fontSize: 16),
@@ -2466,13 +2509,7 @@ class _AddCategoryPageState extends State<AddCategoryPage>
                               SizedBox(
                                 height: 56,
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              CategoriesPage()),
-                                    );
-                                  },
+                                  onPressed: onContinuePressed,
                                   child: Text('Continue',
                                       style: TextStyle(
                                           fontSize: 18, color: Colors.white)),
