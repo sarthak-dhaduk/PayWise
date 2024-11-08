@@ -41,53 +41,53 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBSgRM26T0qAEb9VTANC6p2CLv11n4FPB4',
-    appId: '1:754231422578:web:89629ff957f01519329ceb',
-    messagingSenderId: '754231422578',
-    projectId: 'paywise-11111',
-    authDomain: 'paywise-11111.firebaseapp.com',
-    storageBucket: 'paywise-11111.appspot.com',
-    measurementId: 'G-FRGMYWXBS1',
+    apiKey: 'AIzaSyBmXg4ZeEzk_R650yMpmEHkp5Mm20kJvmA',
+    appId: '1:614806614589:web:289a4b48162705a9fd3054',
+    messagingSenderId: '614806614589',
+    projectId: 'paywise-0220',
+    authDomain: 'paywise-0220.firebaseapp.com',
+    storageBucket: 'paywise-0220.appspot.com',
+    measurementId: 'G-DL99Q61HSH',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAvnpRmAa12c8Qj1hfZpG6wGAW1FQre9IM',
-    appId: '1:754231422578:android:301efdd5db40e6aa329ceb',
-    messagingSenderId: '754231422578',
-    projectId: 'paywise-11111',
-    storageBucket: 'paywise-11111.appspot.com',
+    apiKey: 'AIzaSyD8zGL14FHvDXo3m-CQB7SB6u5YwYgKKb0',
+    appId: '1:614806614589:android:f0a3d1b44290dfaffd3054',
+    messagingSenderId: '614806614589',
+    projectId: 'paywise-0220',
+    storageBucket: 'paywise-0220.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAikJnxCS2FGg4nJOtuVH2Am1fAfljdfc8',
-    appId: '1:754231422578:ios:a4c56b1b12831ea5329ceb',
-    messagingSenderId: '754231422578',
-    projectId: 'paywise-11111',
-    storageBucket: 'paywise-11111.appspot.com',
-    androidClientId: '754231422578-8s6igautah7ed4qk442f5afjagtn3b1n.apps.googleusercontent.com',
-    iosClientId: '754231422578-h2u97to9p9kfbk2tjdcbspv38u83pfje.apps.googleusercontent.com',
+    apiKey: 'AIzaSyACMMl_5iJ_fMlurDBOV3oB3Xtw5cETgxE',
+    appId: '1:614806614589:ios:0761a1f1ae3372affd3054',
+    messagingSenderId: '614806614589',
+    projectId: 'paywise-0220',
+    storageBucket: 'paywise-0220.appspot.com',
+    androidClientId: '614806614589-r7jcvb7bkvrc0h2vdn3orea3elfdnatb.apps.googleusercontent.com',
+    iosClientId: '614806614589-ngn2bd65ih94kvl86rpj159lqr32eo7j.apps.googleusercontent.com',
     iosBundleId: 'com.example.paywise',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAikJnxCS2FGg4nJOtuVH2Am1fAfljdfc8',
-    appId: '1:754231422578:ios:a4c56b1b12831ea5329ceb',
-    messagingSenderId: '754231422578',
-    projectId: 'paywise-11111',
-    storageBucket: 'paywise-11111.appspot.com',
-    androidClientId: '754231422578-8s6igautah7ed4qk442f5afjagtn3b1n.apps.googleusercontent.com',
-    iosClientId: '754231422578-h2u97to9p9kfbk2tjdcbspv38u83pfje.apps.googleusercontent.com',
+    apiKey: 'AIzaSyACMMl_5iJ_fMlurDBOV3oB3Xtw5cETgxE',
+    appId: '1:614806614589:ios:0761a1f1ae3372affd3054',
+    messagingSenderId: '614806614589',
+    projectId: 'paywise-0220',
+    storageBucket: 'paywise-0220.appspot.com',
+    androidClientId: '614806614589-r7jcvb7bkvrc0h2vdn3orea3elfdnatb.apps.googleusercontent.com',
+    iosClientId: '614806614589-ngn2bd65ih94kvl86rpj159lqr32eo7j.apps.googleusercontent.com',
     iosBundleId: 'com.example.paywise',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBSgRM26T0qAEb9VTANC6p2CLv11n4FPB4',
-    appId: '1:754231422578:web:882ff453ffc2a10d329ceb',
-    messagingSenderId: '754231422578',
-    projectId: 'paywise-11111',
-    authDomain: 'paywise-11111.firebaseapp.com',
-    storageBucket: 'paywise-11111.appspot.com',
-    measurementId: 'G-D6VT5Z9LB3',
+    apiKey: 'AIzaSyBmXg4ZeEzk_R650yMpmEHkp5Mm20kJvmA',
+    appId: '1:614806614589:web:923eebcdd5ccbcfefd3054',
+    messagingSenderId: '614806614589',
+    projectId: 'paywise-0220',
+    authDomain: 'paywise-0220.firebaseapp.com',
+    storageBucket: 'paywise-0220.appspot.com',
+    measurementId: 'G-ME51GSL0M3',
   );
 
 }
