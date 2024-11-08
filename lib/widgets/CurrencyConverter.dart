@@ -5,11 +5,16 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 
 class CurrencyConverter extends StatefulWidget {
   final Color color;
+  final void Function(
+          String fromCurrency, String toCurrency, double amount, String result)
+      onConvert;
 
   const CurrencyConverter({
     Key? key,
     required this.color,
+    required this.onConvert,
   }) : super(key: key);
+
   @override
   _CurrencyConverterState createState() => _CurrencyConverterState();
 }
@@ -223,6 +228,8 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
         _result =
             double.parse(jsonResponse['result'].toString()).toStringAsFixed(2);
       });
+      // Trigger the callback with updated values after conversion
+      _triggerConversionCallback();
     } else {
       setState(() {
         _result = 'Failed to convert';
@@ -236,6 +243,10 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
     _fromCurrencySearchController.dispose();
     _toCurrencySearchController.dispose();
     super.dispose();
+  }
+
+  void _triggerConversionCallback() {
+    widget.onConvert(_fromCurrency, _toCurrency, _amount, _result);
   }
 
   @override
@@ -306,8 +317,8 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
                     }).toList(),
                     onChanged: (String? newValue) {
                       setState(() {
-                        _convertCurrency();
                         _fromCurrency = newValue!;
+                        _convertCurrency();
                       });
                     },
                     decoration: InputDecoration(
@@ -360,9 +371,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
                             decoration: InputDecoration(
                               isDense: true,
                               contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
+                                  horizontal: 10, vertical: 8),
                               hintText: 'Search...',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -423,8 +432,8 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
                     }).toList(),
                     onChanged: (String? newValue) {
                       setState(() {
-                        _convertCurrency();
                         _toCurrency = newValue!;
+                        _convertCurrency();
                       });
                     },
                     decoration: InputDecoration(
@@ -477,9 +486,7 @@ class _CurrencyConverterState extends State<CurrencyConverter> {
                             decoration: InputDecoration(
                               isDense: true,
                               contentPadding: EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
+                                  horizontal: 10, vertical: 8),
                               hintText: 'Search...',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),

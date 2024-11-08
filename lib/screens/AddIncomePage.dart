@@ -1,12 +1,18 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/physics.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:paywise/Services/BudgetModificationController.dart';
+import 'package:paywise/Services/TransactionController.dart';
 import 'package:paywise/screens/DetailTransactionPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'package:paywise/widgets/CurrencyConverter.dart';
 
@@ -22,8 +28,17 @@ class _AddIncomePageState extends State<AddIncomePage>
   XFile? _imageFile;
   String? _documentPath;
 
-  final List<String> categories = ['Subscription', 'Food', 'Transport'];
-  final List<String> wallets = ['PayPal', 'Credit Card', 'Cash'];
+  List<String> categories = [];
+  List<String> wallets = [];
+
+  final TextEditingController _editDescription = TextEditingController();
+
+  String _fromCurrency = '';
+  String _toCurrency = '';
+  double _originalAmount = 0;
+  String _convertedAmount = '';
+
+  String? transactionProofUrl = "";
 
   double topContainerHeight = 420;
   double bottomContainerHeight = 380;
@@ -33,9 +48,148 @@ class _AddIncomePageState extends State<AddIncomePage>
   late AnimationController _controller;
   late Animation<double> _animation;
 
+  // Method to handle conversion data and capture the conversion results
+  void _handleConversionData(
+      String fromCurrency, String toCurrency, double amount, String result) {
+    setState(() {
+      // Update the fields in the parent widget or page
+      _fromCurrency = fromCurrency;
+      _toCurrency = toCurrency;
+      _originalAmount = amount;
+      _convertedAmount = result;
+    });
+  }
+
+  Future<String?> _uploadAttachment(dynamic file) async {
+    if (file == null) return null;
+
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child(
+          'transaction_proofs/${file is String ? file.split('/').last : file.name}');
+      final uploadTask =
+          storageRef.putFile(File(file is String ? file : file.path));
+      final snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      print("Failed to upload file: $e");
+      return null;
+    }
+  }
+
+  // Generate a random transaction ID
+  String _generateTransactionID() {
+    return Random().nextInt(999999999).toString();
+  }
+
+  // Method to handle storing transaction data when 'Continue' is clicked
+  Future<void> _handleContinue() async {
+    try {
+      // Retrieve email from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('email') ?? '';
+
+      // Check user type and transaction limit
+      final authSnapshot = await FirebaseFirestore.instance
+          .collection('authentication')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (authSnapshot.docs.isNotEmpty) {
+        final userType = authSnapshot.docs.first['user_type'];
+
+        // Check if user type is "basic user" and limit transactions to 15 per day
+        if (userType == "basic user") {
+          final today = DateTime.now();
+          final startOfDay = DateTime(today.year, today.month, today.day);
+
+          // Count today's transactions for the user
+          final transactionCount = await FirebaseFirestore.instance
+              .collection('transactions')
+              .where('email', isEqualTo: email)
+              .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
+              .get()
+              .then((snapshot) => snapshot.docs.length);
+
+          if (transactionCount >= 15) {
+            // Show message and return if limit is reached
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                    "You have reached your transaction limit for today.")));
+            return;
+          }
+        }
+      }
+
+      // Proceed with the transaction if conditions are met
+      if (selectedCategory != null &&
+          _editDescription.text != "" &&
+          (_imageFile != null || _documentPath != null)) {
+        // Call the TransactionController to process the transaction
+        TransactionController transactionController = TransactionController();
+        final result = await transactionController.processTransaction(
+          amount: _originalAmount, // Directly pass as double
+          accountName: selectedWallet ?? 'Unknown Account',
+          transactionType: "Income",
+        );
+
+        if (result['success'] == true) {
+          // Upload attachment and get the URL
+          if (_imageFile == null && _documentPath != null) {
+            transactionProofUrl = await _uploadAttachment(_documentPath);
+          } else if (_imageFile != null) {
+            transactionProofUrl = await _uploadAttachment(_imageFile);
+          }
+
+          // Prepare transaction data
+          final transactionData = {
+            'account_name': selectedWallet,
+            'amount': _originalAmount,
+            'category_name': selectedCategory,
+            'converted_amount': _convertedAmount,
+            'currency_type': '$_fromCurrency-$_toCurrency',
+            'description': _editDescription.text,
+            'email': email,
+            'timestamp': Timestamp.now(),
+            'transaction_id': _generateTransactionID(),
+            'transaction_proof': transactionProofUrl,
+            'transaction_type': 'Income',
+          };
+
+          // Save transaction data to Firestore
+          await FirebaseFirestore.instance
+              .collection('transactions')
+              .add(transactionData);
+
+          // Display a success message
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Transaction added successfully.")));
+
+          // Navigate to the DetailTransactionPage with transaction data
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (context) => DetailTransactionPage()));
+        } else {
+          // Abort if transaction failed and display the error message from controller
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(result['message'] ?? "Transaction failed.")));
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Please fill out all required fields.")));
+        return;
+      }
+    } catch (e) {
+      print("Error storing transaction: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Failed to add transaction.")));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    fetchCategories();
+    fetchAccounts();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150), // Faster response time
@@ -48,6 +202,7 @@ class _AddIncomePageState extends State<AddIncomePage>
   @override
   void dispose() {
     _controller.dispose();
+    _editDescription.dispose();
     super.dispose();
   }
 
@@ -66,7 +221,7 @@ class _AddIncomePageState extends State<AddIncomePage>
     final velocity = details.primaryVelocity ?? 0;
     final spring = SpringDescription(
       mass: 1,
-      stiffness: 2000,  // Increased stiffness for faster spring action
+      stiffness: 2000, // Increased stiffness for faster spring action
       damping: 7, // Further lowered damping for quicker response
     );
 
@@ -74,6 +229,36 @@ class _AddIncomePageState extends State<AddIncomePage>
         spring, bottomContainerHeight, bottomContainerHeight, velocity / 1000);
 
     _controller.animateWith(simulation);
+  }
+
+  Future<void> fetchCategories() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? '';
+
+    // Query Firestore for categories that match the user's email
+    final snapshot = await FirebaseFirestore.instance
+        .collection('categories')
+        .where('email', isEqualTo: email)
+        .get();
+
+    setState(() {
+      categories = snapshot.docs.map((doc) => doc['name'] as String).toList();
+    });
+  }
+
+  Future<void> fetchAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? '';
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('accounts')
+        .where('email', isEqualTo: email)
+        .get();
+
+    setState(() {
+      wallets =
+          snapshot.docs.map((doc) => doc['account_name'] as String).toList();
+    });
   }
 
   @override
@@ -120,7 +305,10 @@ class _AddIncomePageState extends State<AddIncomePage>
                       fontSize: 18,
                     ),
                   ),
-                  CurrencyConverter(color: Color.fromRGBO(0, 168, 107, 1)),
+                  CurrencyConverter(
+                    color: Color.fromRGBO(0, 168, 107, 1),
+                    onConvert: _handleConversionData,
+                  ),
                 ],
               ),
             ),
@@ -235,6 +423,7 @@ class _AddIncomePageState extends State<AddIncomePage>
                               ),
                               SizedBox(height: 12),
                               TextFormField(
+                                controller: _editDescription,
                                 maxLines: 3,
                                 decoration: InputDecoration(
                                   labelText: 'Description',
@@ -285,11 +474,7 @@ class _AddIncomePageState extends State<AddIncomePage>
                                 height: 56,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              DetailTransactionPage()),
-                                    );
+                                    _handleContinue();
                                   },
                                   child: Text('Continue',
                                       style: TextStyle(
