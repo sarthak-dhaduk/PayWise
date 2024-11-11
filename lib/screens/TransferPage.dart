@@ -1,4 +1,10 @@
+// TransferPage.dart
+
+
 import 'dart:io';
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/physics.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +12,9 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:paywise/Services/AccountTransferController.dart';
 import 'package:paywise/screens/DetailTransactionPage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class TransferPage extends StatefulWidget {
@@ -16,13 +24,15 @@ class TransferPage extends StatefulWidget {
 
 class _TransferPageState extends State<TransferPage>
     with SingleTickerProviderStateMixin {
-  String? selectedCategory;
-  String? selectedWallet;
+  String? selectedAccountFrom;
+  String? selectedAccountTo;
   XFile? _imageFile;
   String? _documentPath;
 
-  final List<String> categories = ['Subscription', 'Food', 'Transport'];
-  final List<String> wallets = ['PayPal', 'Credit Card', 'Cash'];
+  List<String> wallets = [];
+
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _editDescription = TextEditingController();
 
   double topContainerHeight = 400;
   double bottomContainerHeight = 400;
@@ -35,6 +45,7 @@ class _TransferPageState extends State<TransferPage>
   @override
   void initState() {
     super.initState();
+    fetchAccounts();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 150), // Faster response time
@@ -44,9 +55,111 @@ class _TransferPageState extends State<TransferPage>
             .animate(_controller);
   }
 
+  Future<String?> _uploadAttachment(dynamic file) async {
+    if (file == null) return null;
+
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child(
+          'transaction_proofs/${file is String ? file.split('/').last : file.name}');
+      final uploadTask =
+          storageRef.putFile(File(file is String ? file : file.path));
+      final snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      print("Failed to upload file: $e");
+      return null;
+    }
+  }
+
+  // Generate a random transaction ID
+  String _generateTransactionID() {
+    return Random().nextInt(999999999).toString();
+  }
+
+  Future<void> _handleContinue() async {
+    try {
+      // Retrieve email from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('email') ?? '';
+
+      // Check if all required fields are filled
+      if (selectedAccountFrom == null ||
+          selectedAccountTo == null ||
+          _amountController.text.isEmpty ||
+          _editDescription.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Please fill out all required fields.")));
+        return;
+      }
+
+      // Parse amount
+      final amount = double.tryParse(_amountController.text) ?? 0.0;
+
+      // Initialize AccountTransferController
+      final transferController = AccountTransferController();
+
+      // Attempt to transfer funds using the controller
+      final transferResult = await transferController.transferAmount(
+        fromAccount: selectedAccountFrom!,
+        toAccount: selectedAccountTo!,
+        amount: amount,
+      );
+
+      // Check if the transfer was successful
+      if (!transferResult['success']) {
+        // Display the message from the controller if transfer failed
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(transferResult['message'])));
+        return;
+      }
+
+      // Generate a unique transaction ID
+      String transactionId = _generateTransactionID();
+
+      // Upload proof if available
+      String? transactionProofUrl;
+      if (_imageFile != null) {
+        transactionProofUrl = await _uploadAttachment(_imageFile);
+      } else if (_documentPath != null) {
+        transactionProofUrl = await _uploadAttachment(_documentPath);
+      }
+
+      // Prepare transaction data
+      final transactionData = {
+        'email': email,
+        'from_account': selectedAccountFrom,
+        'to_account': selectedAccountTo,
+        'amount': amount,
+        'description': _editDescription.text,
+        'timestamp': Timestamp.now(),
+        'transaction_id': transactionId,
+        'transaction_type': 'Transfer',
+        'transaction_proof': transactionProofUrl,
+      };
+
+      // Save transaction data to Firestore
+      await FirebaseFirestore.instance
+          .collection('transactions')
+          .add(transactionData);
+
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (context) => DetailTransactionPage()));
+
+      // Display a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Transaction added successfully.")));
+    } catch (e) {
+      print("Error storing transaction: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Failed to add transaction.")));
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
+    _amountController.dispose();
+    _editDescription.dispose();
     super.dispose();
   }
 
@@ -73,6 +186,21 @@ class _TransferPageState extends State<TransferPage>
         spring, bottomContainerHeight, bottomContainerHeight, velocity / 1000);
 
     _controller.animateWith(simulation);
+  }
+
+  Future<void> fetchAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? '';
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('accounts')
+        .where('email', isEqualTo: email)
+        .get();
+
+    setState(() {
+      wallets =
+          snapshot.docs.map((doc) => doc['account_name'] as String).toList();
+    });
   }
 
   @override
@@ -111,6 +239,7 @@ class _TransferPageState extends State<TransferPage>
                     ),
                   ),
                   TextField(
+                    controller: _amountController,
                     cursorColor: Colors.white,
                     style: TextStyle(
                       color: Colors.white,
@@ -242,7 +371,7 @@ class _TransferPageState extends State<TransferPage>
                                                   Radius.circular(16)),
                                             ),
                                           ),
-                                          items: categories.map((String item) {
+                                          items: wallets.map((String item) {
                                             return DropdownMenuItem<String>(
                                               alignment: AlignmentDirectional
                                                   .centerStart,
@@ -250,10 +379,10 @@ class _TransferPageState extends State<TransferPage>
                                               child: Text(item),
                                             );
                                           }).toList(),
-                                          value: selectedCategory,
+                                          value: selectedAccountFrom,
                                           onChanged: (value) {
                                             setState(() {
-                                              selectedCategory = value;
+                                              selectedAccountFrom = value;
                                             });
                                           },
                                         ),
@@ -325,10 +454,10 @@ class _TransferPageState extends State<TransferPage>
                                               child: Text(item),
                                             );
                                           }).toList(),
-                                          value: selectedWallet,
+                                          value: selectedAccountTo,
                                           onChanged: (value) {
                                             setState(() {
-                                              selectedWallet = value;
+                                              selectedAccountTo = value;
                                             });
                                           },
                                         ),
@@ -366,6 +495,7 @@ class _TransferPageState extends State<TransferPage>
                               SizedBox(height: 12),
                               SizedBox(height: 12),
                               TextFormField(
+                                controller: _editDescription,
                                 maxLines: 3,
                                 decoration: InputDecoration(
                                   labelText: 'Description',
@@ -417,11 +547,7 @@ class _TransferPageState extends State<TransferPage>
                                 height: 56,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              DetailTransactionPage()),
-                                    );
+                                    _handleContinue();
                                   },
                                   child: Text('Continue',
                                       style: TextStyle(

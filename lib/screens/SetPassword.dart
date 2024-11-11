@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:paywise/screens/HomeScreen.dart';
@@ -36,7 +37,18 @@ class _SetPasswordState extends State<SetPassword> {
                   .collection('authentication')
                   .doc(widget.uid)
                   .update({'password': password});
+              final currentUser = FirebaseAuth.instance.currentUser;
+              final emailImageUrl = currentUser
+                  ?.photoURL; // Ensure your user has this URL set in Firebase Auth
 
+              // Check if the email image URL exists
+              if (emailImageUrl != null) {
+                // Update the Firestore document with the profile_img field
+                await FirebaseFirestore.instance
+                    .collection('authentication')
+                    .doc(widget.uid)
+                    .update({'profile_img': emailImageUrl});
+              }
               // Fetch user details from Firestore
               final userDoc = await FirebaseFirestore.instance
                   .collection('authentication')
