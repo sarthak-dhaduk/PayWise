@@ -1,228 +1,279 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:paywise/screens/NotificationPage.dart';
 import 'package:paywise/screens/TransactionPage.dart';
 import 'package:paywise/widgets/CircularMenuWidget.dart';
 import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
 import 'package:paywise/widgets/line_chart_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HomeScreen extends StatelessWidget {
-  int _activeIndex = 0;
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge,
-        overlays: [SystemUiOverlay.top]);
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height,
-            ),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 0.0),
-                child: Column(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color.fromARGB(255, 248, 237, 216),
-                            Color.fromARGB(1, 255, 246, 229),
-                          ],
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    height: 60,
-                                    width: 60,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(30),
-                                        color: Colors.white,
-                                        border: Border.all(
-                                          color: Color.fromRGBO(127, 61, 255, 1),
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(1.0),
-                                        child: CircleAvatar(
-                                          backgroundImage:
-                                              AssetImage('assets/images/av1.png'),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  DropdownButton(),
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                NotificationPage()),
-                                      );
-                                    },
-                                    child: Container(
-                                      child: Icon(
-                                        Icons.notifications_sharp,
-                                        size: 32,
-                                        color: Color.fromRGBO(127, 61, 255, 1),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: 10),
-                            Column(
-                              children: [
-                                Text(
-                                  'Total Balance',
-                                  style: TextStyle(
-                                      fontSize: 25,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color.fromRGBO(0, 0, 0, 170)),
-                                ),
-                                SizedBox(height: 10),
-                                Text(
-                                  '₹9400',
-                                  style: TextStyle(
-                                      fontSize: 50, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 20),
-                            Row(
-                              children: [
-                                _buildIncomeExpenseCard(
-                                    'Income', '5000', Colors.green),
-                                SizedBox(
-                                  width: 10,
-                                ),
-                                _buildIncomeExpenseCard(
-                                    'Expenses', '1200', Colors.red),
-                              ],
-                            ),
-                          ],
-                        ),
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _activeIndex = 0;
+String? profileImgUrl;
+
+ void initState() {
+    super.initState();
+    _fetchProfileImage();
+   
+  }
+Future<Map<String, String?>> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? email = prefs.getString('email');
+
+    if (email != null) {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('authentication')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final doc = querySnapshot.docs.first;
+        return {
+          'name': doc['name'],
+          'profile_img': doc['profile_img'],
+        };
+      }
+    }
+    return {'name': null, 'profile_img': null};
+  }
+
+   Future<void> _fetchProfileImage() async {
+    try {
+      // Get the current user's auth ID
+      final String? userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      // Fetch the profile image URL from Firestore
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('authentication')
+          .doc(userId)
+          .get();
+
+      setState(() {
+        profileImgUrl = snapshot['profile_img'] as String?;
+      });
+    } catch (e) {
+      print('Error fetching profile image: $e');
+    }
+  }
+
+  @override
+Widget build(BuildContext context) {
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge, overlays: [SystemUiOverlay.top]);
+
+  return Scaffold(
+    backgroundColor: Colors.white,
+    body: SafeArea(
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height,
+          ),
+          child: IntrinsicHeight(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 0.0),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color.fromARGB(255, 248, 237, 216),
+                          Color.fromARGB(1, 255, 246, 229),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 20),
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Fetch user data and display the profile image
+                                FutureBuilder<Map<String, String?>>(
+                                  future: _loadUserData(), // Fetch user data
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return CircularProgressIndicator();
+                                    } else if (snapshot.hasData && snapshot.data != null) {
+                                      final userData = snapshot.data!;
+                                      String? profileImgUrl = userData['profile_img'];
+                                      
+                                      return Container(
+                                        height: 60,
+                                        width: 60,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(30),
+                                            color: Colors.white,
+                                            border: Border.all(
+                                              color: Color.fromRGBO(127, 61, 255, 1),
+                                            ),
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(1.0),
+                                            child: CircleAvatar(
+                                              backgroundImage: profileImgUrl != null
+                                                  ? NetworkImage(profileImgUrl!) // Use the fetched profile image
+                                                  : AssetImage('assets/images/av1.png') as ImageProvider, // Fallback to placeholder
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      return CircleAvatar(
+                                        backgroundImage: AssetImage('assets/images/av1.png'), // Default avatar
+                                      );
+                                    }
+                                  },
+                                ),
+                                DropdownButton(),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (context) => NotificationPage()),
+                                    );
+                                  },
+                                  child: Container(
+                                    child: Icon(
+                                      Icons.notifications_sharp,
+                                      size: 32,
+                                      color: Color.fromRGBO(127, 61, 255, 1),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          Column(
                             children: [
                               Text(
-                                'Spend Frequency',
+                                'Total Balance',
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color.fromRGBO(0, 0, 0, 170),
                                 ),
                               ),
                               SizedBox(height: 10),
-                              SizedBox(
-                                height: 200,
-                                width: double.infinity,
-                                child: LineChartWidget(),
+                              Text(
+                                '₹9400',
+                                style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold),
                               ),
-                              SizedBox(height: 20),
-                              Expanded(child: FilterBar()),
-                              SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Recent Transactions',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18),
+                            ],
+                          ),
+                          SizedBox(height: 20),
+                          Row(
+                            children: [
+                              _buildIncomeExpenseCard('Income', '5000', Colors.green),
+                              SizedBox(width: 10),
+                              _buildIncomeExpenseCard('Expenses', '1200', Colors.red),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Spend Frequency',
+                            style: TextStyle(fontSize: 15),
+                          ),
+                          SizedBox(height: 10),
+                          SizedBox(
+                            height: 200,
+                            width: double.infinity,
+                            child: LineChartWidget(),
+                          ),
+                          SizedBox(height: 20),
+                          Expanded(child: FilterBar()),
+                          SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Recent Transactions',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (context) => Transactionpage()),
+                                  );
+                                },
+                                child: Container(
+                                  height: 35,
+                                  width: 60,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Color.fromRGBO(126, 61, 255, 0.297),
+                                    border: Border.all(color: Color.fromRGBO(126, 61, 255, 1)),
                                   ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                Transactionpage()),
-                                      );
-                                    },
-                                    child: Container(
-                                      height: 35,
-                                      width: 60,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        color:
-                                            Color.fromRGBO(126, 61, 255, 0.297),
-                                        border: Border.all(
-                                            color:
-                                                Color.fromRGBO(126, 61, 255, 1)),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'See All',
-                                          style: TextStyle(
-                                              color: Color.fromRGBO(
-                                                  126, 61, 255, 1)),
-                                        ),
-                                      ),
+                                  child: Center(
+                                    child: Text(
+                                      'See All',
+                                      style: TextStyle(color: Color.fromRGBO(126, 61, 255, 1)),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 10),
-                              Container(
-                                height: 250,
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    children: [
-                                      _buildTransactionCard(
-                                          'Shopping',
-                                          'Buy some grocery',
-                                          '- ₹120',
-                                          '10:00 AM',
-                                          Icons.shopping_bag),
-                                      _buildTransactionCard(
-                                          'Subscription',
-                                          'Disney+ Annual',
-                                          '- ₹80',
-                                          '03:30 PM',
-                                          Icons.subscriptions),
-                                      _buildTransactionCard('Food', 'Ramen',
-                                          '- ₹32', '07:30 PM', Icons.restaurant),
-                                    ],
                                   ),
                                 ),
                               ),
                             ],
                           ),
+                          SizedBox(height: 10),
+                          Container(
+                            height: 250,
+                            child: SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  _buildTransactionCard('Shopping', 'Buy some grocery', '- ₹120', '10:00 AM', Icons.shopping_bag),
+                                  _buildTransactionCard('Subscription', 'Disney+ Annual', '- ₹80', '03:30 PM', Icons.subscriptions),
+                                  _buildTransactionCard('Food', 'Ramen', '- ₹32', '07:30 PM', Icons.restaurant),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        activeIndex: _activeIndex,
-      ),
-      floatingActionButton: CircularMenuWidget(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-    );
-  }
+    ),
+    bottomNavigationBar: CustomBottomNavigationBar(
+      activeIndex: _activeIndex,
+    ),
+    floatingActionButton: CircularMenuWidget(),
+    floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+  );
+}
+
 
   Widget _buildIncomeExpenseCard(String title, String amount, Color color) {
     return Expanded(
@@ -440,4 +491,6 @@ class _FilterBarState extends State<FilterBar> {
       ),
     );
   }
+
 }
+

@@ -68,14 +68,19 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
 
       if (querySnapshot.docs.isNotEmpty) {
         final docId = querySnapshot.docs.first.id;
+
+        // Build a map for fields to update based on changes
+        Map<String, dynamic> updates = {
+          if (_name != null && _name!.isNotEmpty) 'name': _name,
+          if (_profileImgUrl != null && _profileImgUrl!.isNotEmpty)
+            'profile_img': _profileImgUrl,
+          if (_password != null && _password!.isNotEmpty) 'password': _password,
+        };
+
         await FirebaseFirestore.instance
             .collection('authentication')
             .doc(docId)
-            .update({
-          'name': _name,
-          'password': _password,
-          'profile_img': _profileImgUrl,
-        });
+            .update(updates);
       } else {
         print('User document not found');
       }
@@ -266,6 +271,9 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
                       SizedBox(height: screenHeight * 0.04),
                       ElevatedButton(
                         onPressed: () async {
+                          if (_imageFile != null) {
+                            await _uploadImage(); // Upload image only if a new one is selected
+                          }
                           await _updateUserDetails();
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
