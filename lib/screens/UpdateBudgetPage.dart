@@ -156,54 +156,61 @@ class _UpdatebudgetpageState extends State<Updatebudgetpage>
   }
 
   Future<void> saveBudget() async {
-    if (selectedCategory != null && amountController.text.isNotEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('email') ?? '';
-      final currentMonth = DateFormat('MMMM yyyy').format(DateTime.now());
-      final amount = double.tryParse(amountController.text) ?? 0;
+  if (selectedCategory != null && amountController.text.isNotEmpty) {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? '';
+    final currentMonth = DateFormat('MMMM yyyy').format(DateTime.now());
+    final newAmount = double.tryParse(amountController.text) ?? 0;
 
-      final budgetData = {
-        'email': email,
-        'name': selectedCategory,
-        'balance': amount,
-        'current_month': currentMonth,
-        'is_alert': alert,
-        'is_reached': false,
-        'spend': 0,
-        'alert_msg': "You’ve exceeded the limit!",
-        'alert_percentage': alert ? _currentSliderValue : null,
-      };
+    try {
+      // Fetch the current category data
+      final snapshot = await FirebaseFirestore.instance
+          .collection('categories')
+          .where('email', isEqualTo: email)
+          .where('name', isEqualTo: selectedCategory)
+          .get();
 
-      try {
-        final snapshot = await FirebaseFirestore.instance
+      if (snapshot.docs.isNotEmpty) {
+        final categoryData = snapshot.docs.first.data();
+        final currentSpend = categoryData['spend'] ?? 0;
+
+        // Prepare the updated data with the new balance (replacing old value)
+        final updatedBudgetData = {
+          'email': email,
+          'name': selectedCategory,
+          'balance': newAmount,  // Use newAmount directly to replace the balance
+          'current_month': currentMonth,
+          'is_alert': alert,
+          'is_reached': false,
+          'spend': currentSpend,  // Keep the previous spend value
+          'alert_msg': "You’ve exceeded the limit!",
+          'alert_percentage': alert ? _currentSliderValue : null,
+        };
+
+        // Update Firestore with the new balance
+        final docId = snapshot.docs.first.id;
+        await FirebaseFirestore.instance
             .collection('categories')
-            .where('email', isEqualTo: email)
-            .where('name', isEqualTo: selectedCategory)
-            .get();
+            .doc(docId)
+            .update(updatedBudgetData);
 
-        if (snapshot.docs.isNotEmpty) {
-          final docId = snapshot.docs.first.id;
-
-          await FirebaseFirestore.instance
-              .collection('categories')
-              .doc(docId)
-              .update(budgetData);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Budget updated successfully!')));
-        } else {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Category not found')));
-        }
-      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Budget updated successfully!')));
+      } else {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+            .showSnackBar(SnackBar(content: Text('Category not found')));
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Please fill in all fields')));
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
+  } else {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Please fill in all fields')));
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {

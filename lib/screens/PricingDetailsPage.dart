@@ -14,6 +14,7 @@ class _PricingDetailsPageState extends State<PricingDetailsPage> {
   String userName = "User"; // Default placeholder for the name
   String paymentPlan = ""; // To store the selected plan
   int amount = 0; // Amount for the selected plan in paise
+  bool isTried = false;
   final List<Map<String, dynamic>> plans = [
     {
       "filter": "both",
@@ -91,10 +92,56 @@ class _PricingDetailsPageState extends State<PricingDetailsPage> {
     _razorpay?.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay?.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay?.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _fetchUserNameAndTrialStatus(); 
 
     _fetchUserName(); // Fetch the user name when the page initializes
+     _checkUserTypeAndUpdatePlans();
   }
+Future<void> _fetchUserNameAndTrialStatus() async {
+  final prefs = await SharedPreferences.getInstance();
+  final email = prefs.getString('email'); // Retrieve stored email
 
+  if (email != null) {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('authentication')
+        .where('email', isEqualTo: email)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      setState(() {
+        userName = querySnapshot.docs.first['name']; // Fetch "name" field
+        isTried = querySnapshot.docs.first['is_tried'] ?? false; // Fetch 'is_tried'
+        
+        // Update the trial plan's isActive based on isTried value
+        plans[1]['isActive'] = isTried;
+      });
+    }
+  }
+}
+Future<void> _checkUserTypeAndUpdatePlans() async {
+  final prefs = await SharedPreferences.getInstance();
+  final email = prefs.getString('email'); // Retrieve stored email
+
+  if (email != null) {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('authentication')
+        .where('email', isEqualTo: email)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      String userType = querySnapshot.docs.first['user_type'] ?? '';
+      
+      setState(() {
+        if (userType == 'premium user') {
+          // Set both the trial and premium plans as active
+          plans[1]['isActive'] = true; // Trial Plan
+          plans[2]['isActive'] = true; // Yearly Plan
+          plans[3]['isActive'] = true; // Monthly Plan
+        }
+      });
+    }
+  }
+}
   Future<void> _fetchUserName() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('email'); // Retrieve stored email
@@ -117,6 +164,36 @@ class _PricingDetailsPageState extends State<PricingDetailsPage> {
   void dispose() {
     super.dispose();
     _razorpay?.clear();
+  }
+
+  Future<void> handleTryOutPlan() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email');
+
+    if (email != null) {
+      DateTime startDate = DateTime.now();
+      DateTime endDate = startDate.add(Duration(days: 7));
+      String validityPeriod =
+          "${startDate.toIso8601String().substring(0, 10)} To ${endDate.toIso8601String().substring(0, 10)}";
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('authentication')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        String docId = querySnapshot.docs.first.id;
+        await FirebaseFirestore.instance
+            .collection('authentication')
+            .doc(docId)
+            .update({
+          'plan_validity': validityPeriod,
+          'user_type': 'premium user',
+          'is_tried': true,
+        });
+        Fluttertoast.showToast(msg: "Trial activated successfully.");
+      }
+    }
   }
 
  void openPaymentPortal() async {
@@ -404,19 +481,17 @@ class _PricingDetailsPageState extends State<PricingDetailsPage> {
               const SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
-                  onPressed: plan["isActive"]
-                      ? null
-                      : () {
-                          setState(() {
-                            paymentPlan = plan['duration'] == " / Month"
-                                ? "monthly"
-                                : "yearly";
-                            amount = paymentPlan == "monthly"
-                                ? 2900
-                                : 30000; // Monthly (29.00) and yearly (300.00)
-                          });
-                          openPaymentPortal();
-                        },
+                  onPressed:plan['title'] == 'Trial'
+                          ? handleTryOutPlan
+                          : () {
+                              setState(() {
+                                paymentPlan = plan['duration'] == " / Month"
+                                    ? "monthly"
+                                    : "yearly";
+                                amount = paymentPlan == "monthly" ? 2900 : 30000;
+                              });
+                              openPaymentPortal();
+                            },
                   child: Text(
                     plan['price'],
                     style: const TextStyle(color: Colors.white),

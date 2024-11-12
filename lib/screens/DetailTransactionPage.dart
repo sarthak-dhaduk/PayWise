@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:paywise/screens/HomeScreen.dart';
 
-class DetailTransactionPage extends StatelessWidget {
+class DetailTransactionPage extends StatefulWidget {
+  @override
+  _DetailTransactionPageState createState() => _DetailTransactionPageState();
+}
+
+class _DetailTransactionPageState extends State<DetailTransactionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

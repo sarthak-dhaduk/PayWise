@@ -24,6 +24,7 @@ class AuthService {
         'password': password,
         'name': name,
         'user_type': 'basic user',
+        'is_tried': false,
       });
 
       // Return user data as a map
