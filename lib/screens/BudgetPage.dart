@@ -16,7 +16,7 @@ class BudgetPage extends StatefulWidget {
 class _BudgetPageState extends State<BudgetPage> {
   int _activeIndex = 2;
   int _currentMonthIndex = 4;
-
+    
   final List<String> _months = [
     "January",
     "February",
@@ -35,6 +35,7 @@ class _BudgetPageState extends State<BudgetPage> {
   @override
   void initState() {
     super.initState();
+    _setCurrentMonth();
   }
 
   // Fetch the email from SharedPreferences asynchronously
@@ -54,7 +55,12 @@ class _BudgetPageState extends State<BudgetPage> {
       _currentMonthIndex = (_currentMonthIndex + 1) % _months.length;
     });
   }
-
+void _setCurrentMonth() {
+    final currentMonth = DateTime.now().month - 1; // Month is 1-indexed, so subtract 1
+    setState(() {
+      _currentMonthIndex = currentMonth;
+    });
+  }
   // Navigate to DetailBudgetPage
   void _goToDetailPage(Map<String, dynamic> budgetItem) {
     Navigator.push(
@@ -65,8 +71,10 @@ class _BudgetPageState extends State<BudgetPage> {
     );
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
+    final selectedMonth = _months[_currentMonthIndex];
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -111,7 +119,7 @@ class _BudgetPageState extends State<BudgetPage> {
                         onPressed: _goToPreviousMonth,
                       ),
                       Text(
-                        _months[_currentMonthIndex],
+                        selectedMonth,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -151,30 +159,31 @@ class _BudgetPageState extends State<BudgetPage> {
                               return Center(child: CircularProgressIndicator());
                             }
 
-                             List<Map<String, dynamic>> _budgetItems = snapshot.data!.docs
-        .where((doc) {
-          // Safely access document data and check if it contains the 'balance' field
-          var data = doc.data();
-          return data is Map<String, dynamic> && data.containsKey('balance');
-        })
-        .map((doc) {
-                              final balance = doc['balance'] ?? 0.0;
-                              final spend = doc['spend'] ?? 0.0;
-                              final progress = (balance > 0) ? spend / balance : 0.0;
-                              final remaining = (balance - spend).clamp(0.0, double.infinity);
-                              bool alert = spend > balance;
-                              String alertMessage = alert ? 'You’ve exceeded the limit!': '';
+                            // Filter and map documents based on the selected month
+                            List<Map<String, dynamic>> _budgetItems = snapshot.data!.docs
+                                .where((doc) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final currentMonth = data['current_month'] as String? ?? '';
+                                  return currentMonth.startsWith(selectedMonth); // Filter by month only
+                                })
+                                .map((doc) {
+                                  final balance = doc['balance'] ?? 0.0;
+                                  final spend = doc['spend'] ?? 0.0;
+                                  final progress = (balance > 0) ? spend / balance : 0.0;
+                                  final remaining = (balance - spend).clamp(0.0, double.infinity);
+                                  bool alert = spend > balance;
+                                  String alertMessage = alert ? 'You’ve exceeded the limit!' : '';
 
-                              return {
-                                'category': doc['name'],
-                                'remaining': '₹${remaining.toStringAsFixed(2)}',
-                                'spent': '₹${spend.toStringAsFixed(2)} of ₹${balance.toStringAsFixed(2)}',
-                                'progress': progress.clamp(0.0, 1.0),
-                                'progressColor': progress >= 1 ? Colors.red : progress >= 0.5 ? Colors.orange : Colors.green,
-                                'alert': alert,
-                                'alertMessage': alertMessage,
-                              };
-                            }).toList();
+                                  return {
+                                    'category': doc['name'],
+                                    'remaining': '₹${remaining.toStringAsFixed(2)}',
+                                    'spent': '₹${spend.toStringAsFixed(2)} of ₹${balance.toStringAsFixed(2)}',
+                                    'progress': progress.clamp(0.0, 1.0),
+                                    'progressColor': progress >= 1 ? Colors.red : progress >= 0.5 ? Colors.orange : Colors.green,
+                                    'alert': alert,
+                                    'alertMessage': alertMessage,
+                                  };
+                                }).toList();
 
                             return ListView.builder(
                               padding: const EdgeInsets.all(10.0),

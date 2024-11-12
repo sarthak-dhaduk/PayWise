@@ -25,6 +25,7 @@ String? profileImgUrl;
  void initState() {
     super.initState();
     _fetchProfileImage();
+    _checkPlanValidity();
    
   }
 Future<Map<String, String?>> _loadUserData() async {
@@ -48,7 +49,39 @@ Future<Map<String, String?>> _loadUserData() async {
     }
     return {'name': null, 'profile_img': null};
   }
+  Future<void> _checkPlanValidity() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email'); // Retrieve the user's email
 
+    if (email != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('authentication')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (userDoc.docs.isNotEmpty) {
+        final user = userDoc.docs.first;
+        final planValidity = user['plan_validity'] as String?;
+
+        if (planValidity != null) {
+          final endDate = DateTime.parse(planValidity.split(' To ')[1]);
+          final currentDate = DateTime.now();
+
+          // Check if the plan validity date has passed
+          if (currentDate.isAfter(endDate)) {
+            await FirebaseFirestore.instance
+                .collection('authentication')
+                .doc(user.id)
+                .update({
+              'plan_validity': null,
+              'user_type': 'basic user',
+            });
+            print('Plan validity expired. User type updated to basic user.');
+          }
+        }
+      }
+    }
+  }
    Future<void> _fetchProfileImage() async {
     try {
       // Get the current user's auth ID
