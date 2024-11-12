@@ -860,10 +860,10 @@ packages:
     dependency: transitive
     description:
       name: pdfx
-      sha256: f9e4f9e44bbbc4d1552d1ba07be9680c4b869e1d926dde310d58bac643dd4fe1
+      sha256: cbbd7bf54d6f37524df85d06a816fa095d124cd32d42909effddc0027f9db10b
       url: "https://pub.dev"
     source: hosted
-    version: "2.7.0"
+    version: "2.8.0"
   percent_indicator:
     dependency: "direct main"
     description:
