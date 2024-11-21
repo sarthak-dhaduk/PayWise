@@ -55,36 +55,36 @@ class LineTitles {
     );
   }
 
-  static Widget leftTitleWidgets(double value, TitleMeta meta) {
-    const style = TextStyle(
-      fontSize: 10,
-    );
-    String text;
-    switch (value.toInt()) {
-      case 1:
-        text = '10K';
-        break;
-      case 3:
-        text = '30k';
-        break;
-      case 5:
-        text = '50k';
-        break;
-      case 7:
-        text = '70k';
-        break;
-      case 9:
-        text = '90k';
-        break;
-      case 11:
-        text = '110k';
-        break;
-      default:
-        return Container();
-    }
+  // static Widget leftTitleWidgets(double value, TitleMeta meta) {
+  //   const style = TextStyle(
+  //     fontSize: 10,
+  //   );
+  //   String text;
+  //   switch (value.toInt()) {
+  //     case 1:
+  //       text = '10K';
+  //       break;
+  //     case 3:
+  //       text = '30k';
+  //       break;
+  //     case 5:
+  //       text = '50k';
+  //       break;
+  //     case 7:
+  //       text = '70k';
+  //       break;
+  //     case 9:
+  //       text = '90k';
+  //       break;
+  //     case 11:
+  //       text = '110k';
+  //       break;
+  //     default:
+  //       return Container();
+  //   }
 
-    return Text(text, style: style, textAlign: TextAlign.left);
-  }
+  //   return Text(text, style: style, textAlign: TextAlign.left);
+  // }
 
   static FlTitlesData getTitleData() => FlTitlesData(
         show: true,
@@ -98,9 +98,9 @@ class LineTitles {
         ),
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
-            showTitles: true,
+            showTitles: false,
             interval: 1,
-            getTitlesWidget: leftTitleWidgets,
+            // getTitlesWidget: leftTitleWidgets,
             reservedSize: 35,
           ),
         ),

@@ -9,120 +9,6 @@ import 'package:paywise/widgets/CircularMenuWidget.dart';
 import 'package:paywise/widgets/CustomBottomNavigationBar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Renamed DropdownButton class to CustomDropdownButton
-
-class CustomDropdownButton extends StatefulWidget {
-  const CustomDropdownButton({super.key});
-
-  @override
-  State<CustomDropdownButton> createState() => _CustomDropdownButtonState();
-}
-
-class _CustomDropdownButtonState extends State<CustomDropdownButton> {
-  final List<String> items = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  String? selectedValue;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonHideUnderline(
-      child: DropdownButton2<String>(
-        isExpanded: true,
-        hint: const Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Months',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 0, 0, 0),
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        items: items
-            .map((String item) => DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(
-                    item,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ))
-            .toList(),
-        value: selectedValue,
-        onChanged: (String? value) {
-          setState(() {
-            selectedValue = value;
-          });
-        },
-        buttonStyleData: ButtonStyleData(
-          height: 42,
-          width: 120,
-          padding: const EdgeInsets.only(left: 14, right: 14),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(
-                0, 230, 230, 250), // Light purple background color
-            border: Border.all(
-              color: const Color.fromARGB(
-                  117, 111, 110, 112), // Border color (Purple)
-              width: 0.5, // Minimum border width
-            ),
-            borderRadius: BorderRadius.circular(30), // Border radius
-          ),
-          elevation: 0,
-        ),
-        iconStyleData: const IconStyleData(
-          icon: Icon(
-            Icons.keyboard_arrow_down_rounded,
-          ),
-          iconSize: 30,
-          iconEnabledColor: Color.fromRGBO(127, 61, 255, 1),
-          iconDisabledColor: Color.fromARGB(255, 255, 255, 255),
-        ),
-        dropdownStyleData: DropdownStyleData(
-          elevation: 1,
-          maxHeight: 135,
-          width: 130,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: const Color.fromARGB(255, 255, 255, 255),
-          ),
-          offset: const Offset(4, 0),
-          scrollbarTheme: ScrollbarThemeData(
-            radius: const Radius.circular(40),
-            thickness: MaterialStateProperty.all<double>(6),
-            thumbVisibility: MaterialStateProperty.all<bool>(true),
-          ),
-        ),
-        menuItemStyleData: const MenuItemStyleData(
-          height: 40,
-          padding: EdgeInsets.only(left: 14, right: 14),
-        ),
-      ),
-    );
-  }
-}
-
 // Custom Filter Modal as a Widget
 class CustomFilterModal extends StatefulWidget {
   final Function(Map<String, bool>) onApplyFilters;
@@ -376,6 +262,7 @@ class Transaction {
   final String time;
   final String transactionType;
   final IconData icon;
+  final String id;
   final DateTime date; // New field to store transaction date
 
   Transaction({
@@ -385,6 +272,7 @@ class Transaction {
     required this.time,
     required this.transactionType,
     required this.icon,
+    required this.id,
     required this.date, // Transaction date
   });
 }
@@ -2455,6 +2343,8 @@ class _TransactionpageState extends State<Transactionpage> {
     // Add more icons as needed
   };
 
+  String id = "";
+
   late Future<List<Transaction>> _transactionListFuture;
 
   @override
@@ -2463,8 +2353,24 @@ class _TransactionpageState extends State<Transactionpage> {
     _transactionListFuture = fetchTransactions();
   }
 
+  final List<String> months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  String? selectedMonth;
+
   Future<List<Transaction>> fetchTransactions(
-      {Map<String, bool>? filters}) async {
+      {Map<String, bool>? filters, String? month}) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? email = prefs.getString('email');
 
@@ -2499,6 +2405,21 @@ class _TransactionpageState extends State<Transactionpage> {
       }
     }
 
+    // Add month-based filtering
+    if (month != null) {
+      int monthIndex = _getMonthIndex(month); // Helper to get the month's index
+      int currentYear = DateTime.now().year;
+
+      DateTime startOfMonth = DateTime(currentYear, monthIndex, 1);
+      DateTime endOfMonth = (monthIndex < 12)
+          ? DateTime(currentYear, monthIndex + 1, 0)
+          : DateTime(currentYear, 12, 31);
+
+      query = query
+          .where('timestamp', isGreaterThanOrEqualTo: startOfMonth)
+          .where('timestamp', isLessThanOrEqualTo: endOfMonth);
+    }
+
     QuerySnapshot querySnapshot = await query.get();
     List<Transaction> transactionList = [];
 
@@ -2517,6 +2438,8 @@ class _TransactionpageState extends State<Transactionpage> {
       }
 
       String description = data['description'];
+      id = data['transaction_id'];
+
       String amount =
           '${data['transaction_type'] == "Income" ? "+" : data['transaction_type'] == "Expense" ? "-" : "±"} ₹${data['amount']}';
       String transactionType = data['transaction_type'];
@@ -2547,11 +2470,31 @@ class _TransactionpageState extends State<Transactionpage> {
         time: time,
         transactionType: transactionType,
         icon: icon,
+        id: id,
         date: date,
       ));
     }
 
     return transactionList;
+  }
+
+  // Helper method to get the index of the month
+  int _getMonthIndex(String month) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ];
+    return months.indexOf(month) + 1; // Convert to 1-based index
   }
 
   @override
@@ -2575,7 +2518,92 @@ class _TransactionpageState extends State<Transactionpage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                CustomDropdownButton(),
+                DropdownButtonHideUnderline(
+                  child: DropdownButton2<String>(
+                    isExpanded: true,
+                    hint: const Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Months',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 0, 0, 0),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    items: months
+                        .map((String item) => DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(
+                                item,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ))
+                        .toList(),
+                    value: selectedMonth,
+                    onChanged: (String? value) {
+                      setState(() {
+                        selectedMonth = value;
+                        _transactionListFuture =
+                            fetchTransactions(month: selectedMonth);
+                      });
+                    },
+                    buttonStyleData: ButtonStyleData(
+                      height: 42,
+                      width: 120,
+                      padding: const EdgeInsets.only(left: 14, right: 14),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(
+                            0, 230, 230, 250), // Light purple background color
+                        border: Border.all(
+                          color: const Color.fromARGB(
+                              117, 111, 110, 112), // Border color (Purple)
+                          width: 0.5, // Minimum border width
+                        ),
+                        borderRadius:
+                            BorderRadius.circular(30), // Border radius
+                      ),
+                      elevation: 0,
+                    ),
+                    iconStyleData: const IconStyleData(
+                      icon: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                      ),
+                      iconSize: 30,
+                      iconEnabledColor: Color.fromRGBO(127, 61, 255, 1),
+                      iconDisabledColor: Color.fromARGB(255, 255, 255, 255),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      elevation: 1,
+                      maxHeight: 135,
+                      width: 130,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: const Color.fromARGB(255, 255, 255, 255),
+                      ),
+                      offset: const Offset(4, 0),
+                      scrollbarTheme: ScrollbarThemeData(
+                        radius: const Radius.circular(40),
+                        thickness: MaterialStateProperty.all<double>(6),
+                        thumbVisibility: MaterialStateProperty.all<bool>(true),
+                      ),
+                    ),
+                    menuItemStyleData: const MenuItemStyleData(
+                      height: 40,
+                      padding: EdgeInsets.only(left: 14, right: 14),
+                    ),
+                  ),
+                ),
                 SizedBox(
                   width: 40,
                 ),
@@ -2763,12 +2791,15 @@ class _TransactionpageState extends State<Transactionpage> {
       child: GestureDetector(
         onTap: () {
           // Navigate to the detail transaction page
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DetailTransactionPage(),
-            ),
-          );
+          if (transaction.id != "") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    DetailTransactionPage(transactionId: transaction.id),
+              ),
+            );
+          }
         },
         child: Container(
           decoration: BoxDecoration(

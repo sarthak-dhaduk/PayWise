@@ -75,12 +75,12 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   void _goToDetailPage(Map<String, dynamic> menuItem) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AccountDetails(menuItem: menuItem),
-      ),
-    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => AccountDetails(menuItem: menuItem),
+    //   ),
+    // );
   }
 
   @override

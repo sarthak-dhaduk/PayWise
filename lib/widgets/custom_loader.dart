@@ -10,10 +10,13 @@ class CustomLoader {
   }) async {
     // Show the loader before starting the task
     context.loaderOverlay.show(
-      widgetBuilder: (context) => Center( // Center the loader
-        child: LoadingAnimationWidget.discreteCircle(
-          color: const Color.fromARGB(255, 130, 41, 255),
-          size: 60,
+      widgetBuilder: (context) => Container(
+        color: Colors.white, // Set full-screen white background
+        child: Center(
+          child: LoadingAnimationWidget.discreteCircle(
+            color: const Color.fromARGB(255, 130, 41, 255), // Spinner color
+            size: 60, // Spinner size
+          ),
         ),
       ),
     );
