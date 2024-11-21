@@ -223,12 +223,12 @@ class AccountDetails extends StatelessWidget {
       child: GestureDetector(
         onTap: () {
           // Navigate to the detail transaction page
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DetailTransactionPage(),
-            ),
-          );
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(
+          //     builder: (context) => DetailTransactionPage(),
+          //   ),
+          // );
         },
         child: Container(
           decoration: BoxDecoration(

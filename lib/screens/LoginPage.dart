@@ -54,7 +54,10 @@ class _LoginPageState extends State<LoginPage> {
         ),
         leading: GestureDetector(
           onTap: () {
-            Navigator.pop(context);
+            Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (context) => SignUpPage()),
+                      );
           },
           child: Icon(Icons.arrow_back_ios_rounded, size: screenHeight * 0.03),
         ),

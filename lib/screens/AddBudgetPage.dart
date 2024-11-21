@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart'; // To get the current month
 
@@ -87,61 +88,66 @@ class _AddBudgetPageState extends State<AddBudgetPage>
   }
 
   Future<void> saveBudget() async {
-    if (selectedCategory != null && amountController.text.isNotEmpty) {
-      final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('email') ?? '';
-      final currentMonth = DateFormat('MMMM yyyy').format(DateTime.now());
-      final amount = double.tryParse(amountController.text) ?? 0;
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          if (selectedCategory != null && amountController.text.isNotEmpty) {
+            final prefs = await SharedPreferences.getInstance();
+            final email = prefs.getString('email') ?? '';
+            final currentMonth = DateFormat('MMMM yyyy').format(DateTime.now());
+            final amount = double.tryParse(amountController.text) ?? 0;
 
-      // Prepare the updated budget data
-      final budgetData = {
-        'email': email,
-        'name': selectedCategory,
-        'balance': amount,
-        'current_month': currentMonth,
-        'is_alert': alert,
-        'is_reached': false,
-        'spend': 0,
-        'alert_msg': "You’ve exceeded the limit!",
-        'alert_percentage': alert ? _currentSliderValue : null,
-      };
+            // Prepare the updated budget data
+            final budgetData = {
+              'email': email,
+              'name': selectedCategory,
+              'balance': amount,
+              'current_month': currentMonth,
+              'is_alert': alert,
+              'is_reached': false,
+              'spend': 0,
+              'alert_msg': "You’ve exceeded the limit!",
+              'alert_percentage': alert ? _currentSliderValue : null,
+            };
 
-      try {
-        // Query for the document where the category and email match
-        final snapshot = await FirebaseFirestore.instance
-            .collection('categories')
-            .where('email', isEqualTo: email)
-            .where('name', isEqualTo: selectedCategory)
-            .get();
+            try {
+              // Query for the document where the category and email match
+              final snapshot = await FirebaseFirestore.instance
+                  .collection('categories')
+                  .where('email', isEqualTo: email)
+                  .where('name', isEqualTo: selectedCategory)
+                  .get();
 
-        if (snapshot.docs.isNotEmpty) {
-          // If the document exists, update it
-          final docId = snapshot.docs.first.id; // Get the document ID
+              if (snapshot.docs.isNotEmpty) {
+                // If the document exists, update it
+                final docId = snapshot.docs.first.id; // Get the document ID
 
-          // Update the document in Firestore
-          await FirebaseFirestore.instance
-              .collection('categories')
-              .doc(docId) // Use the document ID
-              .update(budgetData);
+                // Update the document in Firestore
+                await FirebaseFirestore.instance
+                    .collection('categories')
+                    .doc(docId) // Use the document ID
+                    .update(budgetData);
 
-          // Optional: Show a confirmation
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Budget updated successfully!')));
-        } else {
-          // Handle the case where the document is not found
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Category not found')));
-        }
-      } catch (e) {
-        // Handle any errors that occur
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    } else {
-      // Handle invalid input (e.g., category not selected or amount empty)
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Please fill in all fields')));
-    }
+                // Optional: Show a confirmation
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Budget updated successfully!')));
+              } else {
+                // Handle the case where the document is not found
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Category not found')));
+              }
+            } catch (e) {
+              // Handle any errors that occur
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text('Error: $e')));
+            }
+          } else {
+            // Handle invalid input (e.g., category not selected or amount empty)
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Please fill in all fields')));
+          }
+          //Code
+        });
   }
 
   @override

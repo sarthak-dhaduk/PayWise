@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:paywise/screens/ProfilePage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
@@ -57,6 +58,40 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
   }
 
   Future<void> _updateUserDetails() async {
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          final prefs = await SharedPreferences.getInstance();
+          String? email = prefs.getString('email');
+
+          if (email != null) {
+            final querySnapshot = await FirebaseFirestore.instance
+                .collection('authentication')
+                .where('email', isEqualTo: email)
+                .get();
+
+            if (querySnapshot.docs.isNotEmpty) {
+              final docId = querySnapshot.docs.first.id;
+
+              // Build a map for fields to update based on changes
+              Map<String, dynamic> updates = {
+                if (_name != null && _name!.isNotEmpty) 'name': _name,
+                if (_profileImgUrl != null && _profileImgUrl!.isNotEmpty)
+                  'profile_img': _profileImgUrl,
+                if (_password != null && _password!.isNotEmpty)
+                  'password': _password,
+              };
+
+              await FirebaseFirestore.instance
+                  .collection('authentication')
+                  .doc(docId)
+                  .update(updates);
+            } else {
+              print('User document not found');
+            }
+          }
+          //Code
+        });
     final prefs = await SharedPreferences.getInstance();
     String? email = prefs.getString('email');
 
@@ -88,24 +123,30 @@ class _ProfileUpdatePageState extends State<ProfileUpdatePage> {
   }
 
   Future<void> _uploadImage() async {
-    if (_imageFile != null) {
-      try {
-        String fileName = 'images/${DateTime.now().millisecondsSinceEpoch}.png';
-        await storage.ref(fileName).putFile(_imageFile!);
-        String downloadURL = await storage.ref(fileName).getDownloadURL();
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          //Code
+          if (_imageFile != null) {
+            try {
+              String fileName =
+                  'images/${DateTime.now().millisecondsSinceEpoch}.png';
+              await storage.ref(fileName).putFile(_imageFile!);
+              String downloadURL = await storage.ref(fileName).getDownloadURL();
 
-        setState(() {
-          _profileImgUrl = downloadURL;
+              setState(() {
+                _profileImgUrl = downloadURL;
+              });
+
+              await _updateUserDetails(); // Save new image URL to Firestore
+              print("Image uploaded. Download URL: $downloadURL");
+            } catch (e) {
+              print("Error uploading image: $e");
+            }
+          } else {
+            print("No image selected for upload.");
+          }
         });
-
-        await _updateUserDetails(); // Save new image URL to Firestore
-        print("Image uploaded. Download URL: $downloadURL");
-      } catch (e) {
-        print("Error uploading image: $e");
-      }
-    } else {
-      print("No image selected for upload.");
-    }
   }
 
   @override

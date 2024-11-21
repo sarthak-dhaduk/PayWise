@@ -12,6 +12,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:paywise/Services/BudgetModificationController.dart';
 import 'package:paywise/Services/TransactionController.dart';
 import 'package:paywise/screens/DetailTransactionPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 import 'package:paywise/widgets/CurrencyConverter.dart';
@@ -81,108 +82,123 @@ class _AddIncomePageState extends State<AddIncomePage>
     return Random().nextInt(999999999).toString();
   }
 
+  String tId = "";
+
   // Method to handle storing transaction data when 'Continue' is clicked
   Future<void> _handleContinue() async {
-    try {
-      // Retrieve email from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('email') ?? '';
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          //Code
+          try {
+            // Retrieve email from SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            final email = prefs.getString('email') ?? '';
 
-      // Check user type and transaction limit
-      final authSnapshot = await FirebaseFirestore.instance
-          .collection('authentication')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
+            // Check user type and transaction limit
+            final authSnapshot = await FirebaseFirestore.instance
+                .collection('authentication')
+                .where('email', isEqualTo: email)
+                .limit(1)
+                .get();
 
-      if (authSnapshot.docs.isNotEmpty) {
-        final userType = authSnapshot.docs.first['user_type'];
+            if (authSnapshot.docs.isNotEmpty) {
+              final userType = authSnapshot.docs.first['user_type'];
 
-        // Check if user type is "basic user" and limit transactions to 15 per day
-        if (userType == "basic user") {
-          final today = DateTime.now();
-          final startOfDay = DateTime(today.year, today.month, today.day);
+              // Check if user type is "basic user" and limit transactions to 15 per day
+              if (userType == "basic user") {
+                final today = DateTime.now();
+                final startOfDay = DateTime(today.year, today.month, today.day);
 
-          // Count today's transactions for the user
-          final transactionCount = await FirebaseFirestore.instance
-              .collection('transactions')
-              .where('email', isEqualTo: email)
-              .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
-              .get()
-              .then((snapshot) => snapshot.docs.length);
+                // Count today's transactions for the user
+                final transactionCount = await FirebaseFirestore.instance
+                    .collection('transactions')
+                    .where('email', isEqualTo: email)
+                    .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
+                    .get()
+                    .then((snapshot) => snapshot.docs.length);
 
-          if (transactionCount >= 15) {
-            // Show message and return if limit is reached
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                    "You have reached your transaction limit for today.")));
-            return;
+                if (transactionCount >= 15) {
+                  // Show message and return if limit is reached
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(
+                          "You have reached your transaction limit for today.")));
+                  return;
+                }
+              }
+            }
+
+            // Proceed with the transaction if conditions are met
+            if (selectedCategory != null &&
+                _editDescription.text != "" &&
+                (_imageFile != null || _documentPath != null)) {
+              // Call the TransactionController to process the transaction
+              TransactionController transactionController =
+                  TransactionController();
+              final result = await transactionController.processTransaction(
+                amount: _originalAmount, // Directly pass as double
+                accountName: selectedWallet ?? 'Unknown Account',
+                transactionType: "Income",
+              );
+
+              if (result['success'] == true) {
+                // Upload attachment and get the URL
+                if (_imageFile == null && _documentPath != null) {
+                  transactionProofUrl = await _uploadAttachment(_documentPath);
+                } else if (_imageFile != null) {
+                  transactionProofUrl = await _uploadAttachment(_imageFile);
+                }
+
+                tId = _generateTransactionID();
+
+                // Prepare transaction data
+                final transactionData = {
+                  'account_name': selectedWallet,
+                  'amount': _originalAmount,
+                  'category_name': selectedCategory,
+                  'converted_amount': _convertedAmount,
+                  'currency_type': '$_fromCurrency-$_toCurrency',
+                  'description': _editDescription.text,
+                  'email': email,
+                  'timestamp': Timestamp.now(),
+                  'transaction_id': tId,
+                  'transaction_proof': transactionProofUrl,
+                  'transaction_type': 'Income',
+                };
+
+                // Save transaction data to Firestore
+                await FirebaseFirestore.instance
+                    .collection('transactions')
+                    .add(transactionData);
+
+                // Display a success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Transaction added successfully.")));
+
+                // Navigate to the DetailTransactionPage with transaction data
+                if (tId != "") {
+                  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              DetailTransactionPage(transactionId: tId)));
+                }
+              } else {
+                // Abort if transaction failed and display the error message from controller
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(result['message'] ?? "Transaction failed.")));
+              }
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text("Please fill out all required fields.")));
+              return;
+            }
+          } catch (e) {
+            print("Error storing transaction: $e");
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Failed to add transaction.")));
           }
-        }
-      }
-
-      // Proceed with the transaction if conditions are met
-      if (selectedCategory != null &&
-          _editDescription.text != "" &&
-          (_imageFile != null || _documentPath != null)) {
-        // Call the TransactionController to process the transaction
-        TransactionController transactionController = TransactionController();
-        final result = await transactionController.processTransaction(
-          amount: _originalAmount, // Directly pass as double
-          accountName: selectedWallet ?? 'Unknown Account',
-          transactionType: "Income",
-        );
-
-        if (result['success'] == true) {
-          // Upload attachment and get the URL
-          if (_imageFile == null && _documentPath != null) {
-            transactionProofUrl = await _uploadAttachment(_documentPath);
-          } else if (_imageFile != null) {
-            transactionProofUrl = await _uploadAttachment(_imageFile);
-          }
-
-          // Prepare transaction data
-          final transactionData = {
-            'account_name': selectedWallet,
-            'amount': _originalAmount,
-            'category_name': selectedCategory,
-            'converted_amount': _convertedAmount,
-            'currency_type': '$_fromCurrency-$_toCurrency',
-            'description': _editDescription.text,
-            'email': email,
-            'timestamp': Timestamp.now(),
-            'transaction_id': _generateTransactionID(),
-            'transaction_proof': transactionProofUrl,
-            'transaction_type': 'Income',
-          };
-
-          // Save transaction data to Firestore
-          await FirebaseFirestore.instance
-              .collection('transactions')
-              .add(transactionData);
-
-          // Display a success message
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Transaction added successfully.")));
-
-          // Navigate to the DetailTransactionPage with transaction data
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (context) => DetailTransactionPage()));
-        } else {
-          // Abort if transaction failed and display the error message from controller
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(result['message'] ?? "Transaction failed.")));
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Please fill out all required fields.")));
-        return;
-      }
-    } catch (e) {
-      print("Error storing transaction: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Failed to add transaction.")));
-    }
+        });
   }
 
   @override

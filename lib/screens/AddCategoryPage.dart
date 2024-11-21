@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:paywise/screens/CategoriesPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class IconSearchMenu extends StatefulWidget {
@@ -2196,7 +2197,7 @@ class _AddCategoryPageState extends State<AddCategoryPage>
 
   late AnimationController _controller;
   late Animation<double> _animation;
-  String selectedIconName ="";
+  String selectedIconName = "";
 
   IconData? selectedIcon;
   Color selectedIconColor = Colors.blue;
@@ -2220,33 +2221,42 @@ class _AddCategoryPageState extends State<AddCategoryPage>
     super.dispose();
   }
 
- void onContinuePressed() async {
-  // Validate input
-  if (selectedIcon != null && categoryNameController.text.isNotEmpty) {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? email = prefs.getString('email');
-    
-    // Create category data with the icon name
-    final categoryData = {
-      'iconName': selectedIconName, // Save the selected icon name here
-      'iconColor': _colorToHex(selectedIconColor), // Store color as a hex string
-      'name': categoryNameController.text,
-      'email': email,
-    };
+  void onContinuePressed() async {
+    // Validate input
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          //Code
+          if (selectedIcon != null && categoryNameController.text.isNotEmpty) {
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            String? email = prefs.getString('email');
 
-    // Store in Firestore
-    await FirebaseFirestore.instance.collection('categories').add(categoryData);
+            // Create category data with the icon name
+            final categoryData = {
+              'iconName': selectedIconName, // Save the selected icon name here
+              'iconColor':
+                  _colorToHex(selectedIconColor), // Store color as a hex string
+              'name': categoryNameController.text,
+              'email': email,
+            };
 
-    // Optionally, navigate back or show a success message
-    Navigator.pop(context);
-  } else {
-    // Show an error message if validation fails
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Please select an icon and enter a category name.')),
-    );
+            // Store in Firestore
+            await FirebaseFirestore.instance
+                .collection('categories')
+                .add(categoryData);
+
+            // Optionally, navigate back or show a success message
+            Navigator.pop(context);
+          } else {
+            // Show an error message if validation fails
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content:
+                      Text('Please select an icon and enter a category name.')),
+            );
+          }
+        });
   }
-}
-
 
   void onVerticalDragUpdate(DragUpdateDetails details) {
     setState(() {

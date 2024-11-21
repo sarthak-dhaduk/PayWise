@@ -2,13 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart'; // To get the current month
 
 class Updatebudgetpage extends StatefulWidget {
-   final String categoryName;
+  final String categoryName;
 
- 
   const Updatebudgetpage({super.key, required this.categoryName});
 
   @override
@@ -35,8 +35,6 @@ class _UpdatebudgetpageState extends State<Updatebudgetpage>
   late AnimationController _controller;
   late Animation<double> _animation;
 
- 
-
   Future<void> fetchInitialBudgetData() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('email') ?? '';
@@ -54,7 +52,7 @@ class _UpdatebudgetpageState extends State<Updatebudgetpage>
       setState(() {
         // Set initial selected category
         selectedCategory = initialBudget['name'];
-        amount = initialBudget['balance']*1.0 ?? 0;
+        amount = initialBudget['balance'] * 1.0 ?? 0;
         amountController.text = amount.toString();
 
         // Set alert fields
@@ -67,7 +65,8 @@ class _UpdatebudgetpageState extends State<Updatebudgetpage>
       });
     }
   }
- @override
+
+  @override
   void initState() {
     super.initState();
     fetchCategories();
@@ -81,6 +80,7 @@ class _UpdatebudgetpageState extends State<Updatebudgetpage>
         Tween<double>(begin: bottomContainerHeight, end: bottomContainerHeight)
             .animate(_controller);
   }
+
   void onVerticalDragUpdate(DragUpdateDetails details) {
     setState(() {
       bottomContainerHeight -=
@@ -156,61 +156,65 @@ class _UpdatebudgetpageState extends State<Updatebudgetpage>
   }
 
   Future<void> saveBudget() async {
-  if (selectedCategory != null && amountController.text.isNotEmpty) {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('email') ?? '';
-    final currentMonth = DateFormat('MMMM yyyy').format(DateTime.now());
-    final newAmount = double.tryParse(amountController.text) ?? 0;
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          //Code
+          if (selectedCategory != null && amountController.text.isNotEmpty) {
+            final prefs = await SharedPreferences.getInstance();
+            final email = prefs.getString('email') ?? '';
+            final currentMonth = DateFormat('MMMM yyyy').format(DateTime.now());
+            final newAmount = double.tryParse(amountController.text) ?? 0;
 
-    try {
-      // Fetch the current category data
-      final snapshot = await FirebaseFirestore.instance
-          .collection('categories')
-          .where('email', isEqualTo: email)
-          .where('name', isEqualTo: selectedCategory)
-          .get();
+            try {
+              // Fetch the current category data
+              final snapshot = await FirebaseFirestore.instance
+                  .collection('categories')
+                  .where('email', isEqualTo: email)
+                  .where('name', isEqualTo: selectedCategory)
+                  .get();
 
-      if (snapshot.docs.isNotEmpty) {
-        final categoryData = snapshot.docs.first.data();
-        final currentSpend = categoryData['spend'] ?? 0;
+              if (snapshot.docs.isNotEmpty) {
+                final categoryData = snapshot.docs.first.data();
+                final currentSpend = categoryData['spend'] ?? 0;
 
-        // Prepare the updated data with the new balance (replacing old value)
-        final updatedBudgetData = {
-          'email': email,
-          'name': selectedCategory,
-          'balance': newAmount,  // Use newAmount directly to replace the balance
-          'current_month': currentMonth,
-          'is_alert': alert,
-          'is_reached': false,
-          'spend': currentSpend,  // Keep the previous spend value
-          'alert_msg': "You’ve exceeded the limit!",
-          'alert_percentage': alert ? _currentSliderValue : null,
-        };
+                // Prepare the updated data with the new balance (replacing old value)
+                final updatedBudgetData = {
+                  'email': email,
+                  'name': selectedCategory,
+                  'balance':
+                      newAmount, // Use newAmount directly to replace the balance
+                  'current_month': currentMonth,
+                  'is_alert': alert,
+                  'is_reached': false,
+                  'spend': currentSpend, // Keep the previous spend value
+                  'alert_msg': "You’ve exceeded the limit!",
+                  'alert_percentage': alert ? _currentSliderValue : null,
+                };
 
-        // Update Firestore with the new balance
-        final docId = snapshot.docs.first.id;
-        await FirebaseFirestore.instance
-            .collection('categories')
-            .doc(docId)
-            .update(updatedBudgetData);
+                // Update Firestore with the new balance
+                final docId = snapshot.docs.first.id;
+                await FirebaseFirestore.instance
+                    .collection('categories')
+                    .doc(docId)
+                    .update(updatedBudgetData);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Budget updated successfully!')));
-      } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Category not found')));
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
-  } else {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Please fill in all fields')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Budget updated successfully!')));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Category not found')));
+              }
+            } catch (e) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text('Error: $e')));
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Please fill in all fields')));
+          }
+        });
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -297,24 +301,25 @@ class _UpdatebudgetpageState extends State<Updatebudgetpage>
                         children: [
                           SizedBox(height: 16),
                           DropdownButtonFormField2<String>(
-  decoration: InputDecoration(
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12.0),
-    ),
-    filled: true,
-    fillColor: Colors.grey[200], // Optional: greyed out to indicate read-only
-  ),
-  items: categories.map((String item) {
-    return DropdownMenuItem<String>(
-      value: item,
-      child: Text(item),
-    );
-  }).toList(),
-  value: selectedCategory,
-  onChanged: null, // This makes the dropdown read-only
-  hint: Text('Select Category'),
-),
-
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.0),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[
+                                  200], // Optional: greyed out to indicate read-only
+                            ),
+                            items: categories.map((String item) {
+                              return DropdownMenuItem<String>(
+                                value: item,
+                                child: Text(item),
+                              );
+                            }).toList(),
+                            value: selectedCategory,
+                            onChanged:
+                                null, // This makes the dropdown read-only
+                            hint: Text('Select Category'),
+                          ),
                           SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,

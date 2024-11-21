@@ -1,6 +1,5 @@
 // TransferPage.dart
 
-
 import 'dart:io';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +13,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:paywise/Services/AccountTransferController.dart';
 import 'package:paywise/screens/DetailTransactionPage.dart';
+import 'package:paywise/widgets/custom_loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
@@ -77,82 +77,90 @@ class _TransferPageState extends State<TransferPage>
   }
 
   Future<void> _handleContinue() async {
-    try {
-      // Retrieve email from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('email') ?? '';
+    await CustomLoader.showLoaderForTask(
+        context: context,
+        task: () async {
+          //Code
+          try {
+            // Retrieve email from SharedPreferences
+            final prefs = await SharedPreferences.getInstance();
+            final email = prefs.getString('email') ?? '';
 
-      // Check if all required fields are filled
-      if (selectedAccountFrom == null ||
-          selectedAccountTo == null ||
-          _amountController.text.isEmpty ||
-          _editDescription.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Please fill out all required fields.")));
-        return;
-      }
+            // Check if all required fields are filled
+            if (selectedAccountFrom == null ||
+                selectedAccountTo == null ||
+                _amountController.text.isEmpty ||
+                _editDescription.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text("Please fill out all required fields.")));
+              return;
+            }
 
-      // Parse amount
-      final amount = double.tryParse(_amountController.text) ?? 0.0;
+            // Parse amount
+            final amount = double.tryParse(_amountController.text) ?? 0.0;
 
-      // Initialize AccountTransferController
-      final transferController = AccountTransferController();
+            // Initialize AccountTransferController
+            final transferController = AccountTransferController();
 
-      // Attempt to transfer funds using the controller
-      final transferResult = await transferController.transferAmount(
-        fromAccount: selectedAccountFrom!,
-        toAccount: selectedAccountTo!,
-        amount: amount,
-      );
+            // Attempt to transfer funds using the controller
+            final transferResult = await transferController.transferAmount(
+              fromAccount: selectedAccountFrom!,
+              toAccount: selectedAccountTo!,
+              amount: amount,
+            );
 
-      // Check if the transfer was successful
-      if (!transferResult['success']) {
-        // Display the message from the controller if transfer failed
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(transferResult['message'])));
-        return;
-      }
+            // Check if the transfer was successful
+            if (!transferResult['success']) {
+              // Display the message from the controller if transfer failed
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(transferResult['message'])));
+              return;
+            }
 
-      // Generate a unique transaction ID
-      String transactionId = _generateTransactionID();
+            // Generate a unique transaction ID
+            String transactionId = _generateTransactionID();
 
-      // Upload proof if available
-      String? transactionProofUrl;
-      if (_imageFile != null) {
-        transactionProofUrl = await _uploadAttachment(_imageFile);
-      } else if (_documentPath != null) {
-        transactionProofUrl = await _uploadAttachment(_documentPath);
-      }
+            // Upload proof if available
+            String? transactionProofUrl;
+            if (_imageFile != null) {
+              transactionProofUrl = await _uploadAttachment(_imageFile);
+            } else if (_documentPath != null) {
+              transactionProofUrl = await _uploadAttachment(_documentPath);
+            }
 
-      // Prepare transaction data
-      final transactionData = {
-        'email': email,
-        'from_account': selectedAccountFrom,
-        'to_account': selectedAccountTo,
-        'amount': amount,
-        'description': _editDescription.text,
-        'timestamp': Timestamp.now(),
-        'transaction_id': transactionId,
-        'transaction_type': 'Transfer',
-        'transaction_proof': transactionProofUrl,
-      };
+            // Prepare transaction data
+            final transactionData = {
+              'email': email,
+              'from_account': selectedAccountFrom,
+              'to_account': selectedAccountTo,
+              'amount': amount,
+              'description': _editDescription.text,
+              'timestamp': Timestamp.now(),
+              'transaction_id': transactionId,
+              'transaction_type': 'Transfer',
+              'transaction_proof': transactionProofUrl,
+            };
 
-      // Save transaction data to Firestore
-      await FirebaseFirestore.instance
-          .collection('transactions')
-          .add(transactionData);
+            // Save transaction data to Firestore
+            await FirebaseFirestore.instance
+                .collection('transactions')
+                .add(transactionData);
 
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context) => DetailTransactionPage()));
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        DetailTransactionPage(transactionId: transactionId)));
 
-      // Display a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Transaction added successfully.")));
-    } catch (e) {
-      print("Error storing transaction: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Failed to add transaction.")));
-    }
+            // Display a success message
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Transaction added successfully.")));
+          } catch (e) {
+            print("Error storing transaction: $e");
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Failed to add transaction.")));
+          }
+        });
   }
 
   @override

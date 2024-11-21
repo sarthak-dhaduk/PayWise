@@ -22,69 +22,59 @@ class _SetPasswordState extends State<SetPassword> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  void _setPassword() async {
-    final password = _passwordController.text;
-    final confirmPassword = _confirmPasswordController.text;
-    await CustomLoader.showLoaderForTask(
-        context: context,
-        task: () async {
-          if (password.isNotEmpty &&
-              confirmPassword.isNotEmpty &&
-              password == confirmPassword) {
-            try {
-              // Update the password in Firestore
-              await FirebaseFirestore.instance
-                  .collection('authentication')
-                  .doc(widget.uid)
-                  .update({'password': password});
-              final currentUser = FirebaseAuth.instance.currentUser;
-              final emailImageUrl = currentUser
-                  ?.photoURL; // Ensure your user has this URL set in Firebase Auth
+void _setPassword() async {
+  final password = _passwordController.text;
+  final confirmPassword = _confirmPasswordController.text;
 
-              // Check if the email image URL exists
-              if (emailImageUrl != null) {
-                // Update the Firestore document with the profile_img field
-                await FirebaseFirestore.instance
-                    .collection('authentication')
-                    .doc(widget.uid)
-                    .update({'profile_img': emailImageUrl});
-              }
-              // Fetch user details from Firestore
-              final userDoc = await FirebaseFirestore.instance
-                  .collection('authentication')
-                  .doc(widget.uid)
-                  .get();
-
-              if (userDoc.exists) {
-                final userData = userDoc.data();
-                if (userData != null) {
-                  // Save user data to Shared Preferences
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('email', userData['email'] ?? '');
-                  await prefs.setString('uid', userData['auth_id'] ?? '');
-
-                  // Navigate to HomeScreen
-                  goToHome(context);
-                }
-              }
-            } catch (e) {
-              print('Error while setting password: $e');
-              // Show error message if there's an issue with password setting
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text(
-                        'Error while setting password. Please try again!')),
-              );
-            }
-          } else {
-            // Show error message if passwords do not match
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('Passwords do not match or fields are empty!')),
-            );
-          }
-        });
+  if (password.isEmpty || confirmPassword.isEmpty || password != confirmPassword) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Passwords do not match or fields are empty!'),
+      ),
+    );
+    return;
   }
+
+  await CustomLoader.showLoaderForTask(
+    context: context,
+    task: () async {
+      try {
+        await FirebaseFirestore.instance
+            .collection('authentication')
+            .doc(widget.uid)
+            .update({'password': password});
+
+        final userDoc = await FirebaseFirestore.instance
+            .collection('authentication')
+            .doc(widget.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          if (userData != null) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('email', userData['email'] ?? '');
+            await prefs.setString('uid', userData['auth_id'] ?? '');
+
+            goToHome(context);
+          }
+        } else {
+          throw Exception('User document does not exist');
+        }
+      } catch (e) {
+        print('Error while setting password: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error while setting password. Please try again!'),
+          ),
+        );
+      }
+    },
+  );
+}
+
+
+
 
 // Function to navigate to HomeScreen
   void goToHome(BuildContext context) {

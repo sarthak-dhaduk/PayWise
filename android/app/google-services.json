@@ -39,10 +39,10 @@
               "client_type": 3
             },
             {
-              "client_id": "614806614589-ngn2bd65ih94kvl86rpj159lqr32eo7j.apps.googleusercontent.com",
+              "client_id": "614806614589-h01g3vunc5i82jsgm143gphq6pennr8r.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.paywise"
+                "bundle_id": "com.paywise"
               }
             }
           ]
