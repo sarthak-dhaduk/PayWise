@@ -20,7 +20,7 @@
   <p align="center">
     A modern expense tracking app to help you manage your finances effortlessly!
     <br />
-    <a href="https://github.com/sarthak-dhaduk/PayWise"><strong>Explore the docs »</strong></a>
+    <a href="https://drive.google.com/drive/folders/1ir0fCW2MsBvifR96qDNWczmpwsmHNGir?usp=sharing"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://your-apk-download-link.com">Download APK</a>
